@@ -77,8 +77,8 @@ class CourseViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
         if request.user.is_authenticated:
             if UserFavorite.objects.filter(user=request.user, fav_id=course.id, fav_type=1):
                 has_fav_course = True
-            # 确定course.course_org不为None
-            if course.course_org and UserFavorite.objects.filter(user=request.user, fav_id=course.course_org.id, fav_type=2):
+            # 确定course.org不为None
+            if course.org and UserFavorite.objects.filter(user=request.user, fav_id=course.org.id, fav_type=2):
                 has_fav_org = True
 
         course.click_nums += 1

@@ -37,8 +37,8 @@ class CourseAdmin(object):
         # 在保存课程的时候统计课程机构的课程数
         obj = self.new_obj
         obj.save()
-        if obj.course_org is not None:
-            course_org = obj.course_org
+        if obj.org is not None:
+            course_org = obj.org
             course_org.course_nums = Course.objects.filter(course_org=course_org).count()
             course_org.save()
 
