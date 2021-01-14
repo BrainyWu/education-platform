@@ -48,6 +48,8 @@ urlpatterns = [
     url(r'^org/', include(('organization.urls', 'organization'), namespace="org")),
     # 操作相关url配置
     url(r'^operation/', include(('operation.urls', 'operation'), namespace="operation")),
+    # 消息通知
+    url(r'^notification/', include(('notifications.urls', 'notification'), namespace="notification")),
 
     # 配置上传文件的访问处理函数
     url(r'^media/(?P<path>.*)$', serve, {"document_root": MEDIA_ROOT}),
