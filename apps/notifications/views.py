@@ -11,8 +11,8 @@ from rest_framework.decorators import api_view, permission_classes
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 
-from apps.notifications.models import Notification
-from apps.notifications.serializers import NotificationSerializer
+from .models import Notification
+from .serializers import NotificationSerializer
 
 
 class NotificationUnreadView(mixins.ListModelMixin, viewsets.GenericViewSet):

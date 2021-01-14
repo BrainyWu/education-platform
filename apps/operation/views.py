@@ -45,7 +45,7 @@ class AddFavViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets.
     permission_classes = (IsAuthenticated, )
 
     def get_queryset(self):
-        return UserFavorite.objects.filter(user=self.request.user)
+        return UserFavorite.objects.filter(user=self.request.user).select_related('user')
 
     def create(self, request, *args, **kwargs):
         fav_id = request.data.get('fav_id', 0)

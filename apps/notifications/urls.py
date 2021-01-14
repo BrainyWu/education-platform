@@ -4,9 +4,9 @@
 
 from django.conf.urls import url, include
 
-from apps.notifications import views
+from .views import *
 
 
 urlpatterns = [
-    url('', views.NotificationUnreadView.as_view(), name='unread'),
+    url('', NotificationUnreadView.as_view({'get': 'list'}), name='unread'),
 ]
