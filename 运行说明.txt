@@ -1,0 +1,12 @@
+1. �Ȱ�װmysql
+   ��װ��ʱ����Ҫ��������Ϊroot
+
+2. ͨ��navicat �½����ݿ� ����Ϊmxonline
+
+3. navicat ����sql�ļ�
+
+4. pip install -r requirements.txt ��װ������
+
+5. python manage.py runserver
+
+6. ����������� 127.0.0.1:8000����
