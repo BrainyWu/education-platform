@@ -30,7 +30,7 @@ class LessonSerializer(serializers.ModelSerializer):
         # depth = 1
 
     def create(self, validated_data):
-        videos = validated_data.pop('video')
+        videos = validated_data.pop('video', [])
         lesson = Lesson.objects.create(**validated_data)
         for video in videos:
             Video.objects.create(lesson=lesson, **video)
@@ -47,7 +47,7 @@ class CourseSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
     def create(self, validated_data):
-        lessons = validated_data.pop('lesson')
+        lessons = validated_data.pop('lesson', [])
         course = Course.objects.create(**validated_data)
         for lesson in lessons:
             Lesson.objects.create(course=course, **lesson)
