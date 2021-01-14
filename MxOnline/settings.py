@@ -94,7 +94,8 @@ DATABASES = {
         'NAME': "project_education",
         'USER': 'root',
         'PASSWORD': "root",
-        'HOST': "127.0.0.1"
+        'HOST': "127.0.0.1",
+        'CONN_MAX_AGE': 60,  # 数据库持久连接
     }
 }
 

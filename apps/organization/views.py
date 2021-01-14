@@ -29,7 +29,7 @@ class OrgViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
     #         return [IsAuthenticated()]
 
     def get_queryset(self):
-        return CourseOrg.objects.all()
+        return CourseOrg.objects.all().select_related('city')
 
     def retrieve(self, request, *args, **kwargs):
         org = self.get_object()
@@ -73,7 +73,7 @@ class TeacherViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
     lookup_field = 'id'
 
     def get_queryset(self):
-        return Teacher.objects.all()
+        return Teacher.objects.all().select_related('org')
 
     def list(self, request, *args, **kwargs):
         org_id = request.query_params.get('org_id', None)

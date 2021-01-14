@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from django_filters.rest_framework import DjangoFilterBackend
+from django.contrib.auth import get_user_model
 from rest_framework.authentication import SessionAuthentication, BasicAuthentication
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework import mixins, viewsets, filters, status
@@ -8,10 +9,14 @@ from rest_framework.decorators import action
 
 from .models import Course, CourseResource, Lesson, Video
 from .serializers import CourseSerializer, LessonSerializer, CourseResourceSerializer, VideoSerializer
+from notifications.views import notification_handler
 from operation.models import UserFavorite, CourseComment, UserCourse
 from operation.serializers import CourseCommentSerializer
 from lib.utils import BasePagination, get_object
 from lib.response import Response
+
+
+User = get_user_model()
 
 
 class CourseViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
@@ -32,7 +37,7 @@ class CourseViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
     # filter_backends = (DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter)
     filter_fields = ("degree", "category")
     search_fields = ("name", "desc", "detail")
-    ordering_fields = ("students", "click_nums", "add_time", "fav_nums")
+    ordering_fields = ("students", "add_time", "fav_nums")
     lookup_field = 'id'
 
     def get_custom_serializer(self, queryset=None, many=True):
@@ -44,7 +49,12 @@ class CourseViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
             return self.get_serializer(queryset, many=many)
 
     def get_queryset(self):
-        return Course.objects.all()
+        return Course.objects.all().select_related('org')
+
+    def perform_create(self, serializer):
+        serializer.save()
+        # 创建成功，消息通知管理员
+        notification_handler(self.request.user, User.objects.filter(is_staff=1).first(), 'B', self.request)
 
     def list(self, request, *args, **kwargs):
         courses = self.filter_queryset(self.get_queryset())
@@ -107,7 +117,7 @@ class CourseResourceViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
     lookup_field = 'id'
 
     def get_queryset(self):
-        return CourseResource.objects.all()
+        return CourseResource.objects.all().select_related('course')
 
     def list(self, request, *args, **kwargs):
         course_id = request.query_params.get('course_id', None)
@@ -142,7 +152,7 @@ class LessonViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
     ordering_fields = ("add_time",)
 
     def get_queryset(self):
-        return Lesson.objects.all()
+        return Lesson.objects.all().select_related('course')
 
     def list(self, request, *args, **kwargs):
         course_id = request.query_params.get('course_id', None)
@@ -182,7 +192,7 @@ class VideoViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
     ordering_fields = ("add_time",)
 
     def get_queryset(self):
-        return Video.objects.all()
+        return Video.objects.all().select_related('lesson')
 
     def list(self, request, *args, **kwargs):
         lesson_id = request.query_params.get('lesson_id', None)
@@ -215,7 +225,7 @@ class CourseCommentViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
     permission_classes = (IsAuthenticatedOrReadOnly,)
 
     def get_queryset(self):
-        return CourseComment.objects.all()
+        return CourseComment.objects.all().select_related('course')
 
     def list(self, request, *args, **kwargs):
         course_id = request.query_params.get('course_id', None)
