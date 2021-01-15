@@ -17,7 +17,7 @@ from lib.utils import BasePagination, get_object
 from operation.models import UserCourse, UserFavorite, UserMessage
 from operation.serializers import UserMessageSerializer, UserCourseSerializer
 from organization.serializers import CourseOrgSerializer, TeacherSerializer
-from utils.email_send import send_register_email
+from utils.email_send import send_email
 
 User = get_user_model()
 
@@ -184,11 +184,13 @@ class UserMessageView(mixins.ListModelMixin, viewsets.GenericViewSet):
 def send_email_code(request, *args, **kwargs):
     """1(注册)，2(忘记密码)，3(修改邮箱)验证码发送"""
     email = request.data.get('email') or request.query_params.get('email')
-    send_type = request.data.get('send_type') or request.query_params.get('email')
-
-    if not re.match(r"^[0-9a-zA-Z_]{0,19}@[0-9a-zA-Z]{1,13}\.(com|cn|net)$", email):
+    send_type = request.data.get('send_type') or request.query_params.get('send_type')
+    # 判断邮箱和发送类型都不为空
+    if not email or not send_type:
+        return Response(code=-1, msg="Email and send type are required params.", status=status.HTTP_400_BAD_REQUEST)
+    # 邮箱有效验证
+    if not re.match(r"^[0-9a-zA-Z_]{0,19}@[0-9a-zA-Z]{1,13}\.(com|cn|net){1,3}$", email):
         return Response(code=-1, msg="Illegal mailbox.", status=status.HTTP_400_BAD_REQUEST)
-                                                                                              
     # 更新邮箱时需要登录用户
     if int(send_type) == 3:
         if not request.user.is_authenticated:
@@ -196,12 +198,10 @@ def send_email_code(request, *args, **kwargs):
         email = request.user.email
     elif int(send_type) == 2:
         username = request.data.get('username') or request.query_params.get('username')
+        if not username:
+            return Response(code=-1, msg="username is a required params.", status=status.HTTP_400_BAD_REQUEST)
         if not User.objects.filter(username=username, email=email):
-            return Response(code=-1, msg="User is not exists.", status=status.HTTP_401_UNAUTHORIZED)
+            return Response(code=-1, msg="User is not exists, username or email error.", status=status.HTTP_401_UNAUTHORIZED)
 
-    if email:
-        send_register_email(email, int(send_type))
-        return Response(data={'email': email}, status=status.HTTP_200_OK)
-    return Response(code=-1,
-                    msg="Email is a required params.",
-                    status=status.HTTP_400_BAD_REQUEST)
+    send_email(email, send_type)
+    return Response(data={'send_type': send_type, 'email': email}, status=status.HTTP_200_OK)
