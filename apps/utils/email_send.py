@@ -4,9 +4,7 @@ __author__ = 'wuhai'
 from random import Random
 
 from django.core.mail import send_mail
-
-from MxOnline.settings import EMAIL_FROM
-from users.models import EmailVerifyRecord
+from django_redis import get_redis_connection
 
 
 def random_str(randomlength=8):
@@ -19,18 +17,15 @@ def random_str(randomlength=8):
     return str
 
 
-def send_register_email(email, send_type):
+def send_email(email, send_type):
     if send_type == 3:
         code = random_str(4)
     else:
         code = random_str(16)
-    email_record = EmailVerifyRecord()
-
-    email_record.code = code
-    email_record.email = email
-    email_record.send_type = send_type
-    email_record.save()
-
+    # 使用redis保存验证码，并设置过期：5分钟
+    conn = get_redis_connection('default')
+    conn.set(':'.join(['verify_code', send_type, email]), code, 60 * 100)
+    # 发送邮件
     email_title = ""
     email_body = ""
 

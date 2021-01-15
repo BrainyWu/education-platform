@@ -6,7 +6,7 @@ from xadmin.plugins.auth import UserAdmin
 from xadmin.layout import Fieldset, Main, Side, Row
 from django.utils.translation import ugettext as _
 
-from .models import EmailVerifyRecord, UserProfile
+from .models import UserProfile
 
 
 class UserProfileAdmin(UserAdmin):
@@ -49,17 +49,8 @@ class GlobalSettings(object):
     # menu_style = "accordion"
 
 
-class EmailVerifyRecordAdmin(object):
-    list_display = ['code', 'email', 'send_type', 'send_time']
-    search_fields = ['code', 'email', 'send_type']
-    list_filter = ['code', 'email', 'send_type', 'send_time']
-    list_editable = ['code', 'email', 'send_type', 'send_time']
-    model_icon = 'fa fa-address-book-o'
-
-
 # from django.contrib.auth.models import User
 # xadmin.site.unregister(User)
-xadmin.site.register(EmailVerifyRecord, EmailVerifyRecordAdmin)
 # xadmin.site.register(UserProfile, UserProfileAdmin)
 xadmin.site.register(views.BaseAdminView, BaseSetting)
 xadmin.site.register(views.CommAdminView, GlobalSettings)

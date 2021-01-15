@@ -5,12 +5,11 @@ import re
 
 from django.db.models import Q
 from django.contrib.auth import get_user_model
+from django_redis import get_redis_connection
 
 from captcha.fields import CaptchaField
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
-
-from .models import EmailVerifyRecord
 
 User = get_user_model()
 
@@ -28,21 +27,12 @@ class VerifySerializer(serializers.Serializer):
                                  })
 
     def validate_code(self, code):
-        verify_records = EmailVerifyRecord.objects.filter(
-            code=self.initial_data["code"],
-            email=self.initial_data["email"],
-            send_type=int(self.initial_data["send_type"])).order_by("-send_time")
-        if verify_records:
-            last_record = verify_records[0]
-
-            five_mintes_ago = datetime.now() - timedelta(hours=0, minutes=1000, seconds=0)
-            if five_mintes_ago > last_record.send_time:
-                raise serializers.ValidationError("验证码过期")
-            if last_record.code != code:
-                raise serializers.ValidationError("验证码错误")
-            return code
-        else:
-            raise serializers.ValidationError("验证码或验证类型错误")
+        conn = get_redis_connection('default')
+        db_code = conn.get(':'.join(['verify_code', self.initial_data["send_type"], self.initial_data["email"]]))
+        if not db_code:
+            raise serializers.ValidationError("请检查邮箱，类型是否正确, 验证码是否过期")
+        if code != db_code.decode('utf8'):
+            raise serializers.ValidationError("验证码错误")
 
 
 class EmailModifySerializer(VerifySerializer):

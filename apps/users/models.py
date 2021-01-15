@@ -24,24 +24,3 @@ class UserProfile(AbstractUser):
     # def save(self, *args, **kwargs):
     #     self.set_password(self.password)
     #     super(UserProfile, self).save(*args, **kwargs)
-
-
-class EmailVerifyRecord(models.Model):
-    VERIFY_CHOICES = (
-        (1, "注册"),
-        (2, "找回密码"),
-        (3, "修改邮箱"),
-    )
-    code = models.CharField(max_length=20, verbose_name="验证码")
-    email = models.EmailField(max_length=50, verbose_name="邮箱")
-    send_type = models.IntegerField(verbose_name="验证码类型", choices=VERIFY_CHOICES)
-    send_time = models.DateTimeField(verbose_name="发送时间", default=datetime.now)
-
-    class Meta:
-        db_table = 'email_verify_record'
-        verbose_name = "邮箱验证码"
-        verbose_name_plural = verbose_name
-
-    def __str__(self):
-        return '{0}({1})'.format(self.code, self.email)
-
