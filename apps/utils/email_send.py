@@ -24,7 +24,7 @@ def send_email(email, send_type):
         code = random_str(16)
     # 使用redis保存验证码，并设置过期：5分钟
     conn = get_redis_connection('default')
-    conn.set(':'.join(['verify_code', send_type, email]), code, 60 * 100)
+    conn.setex(':'.join(['verify_code', send_type, email]), 60 * 5, code)
     # 发送邮件
     email_title = ""
     email_body = ""

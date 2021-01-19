@@ -113,15 +113,20 @@ CACHES = {
     },
     "course": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379/1",  # DB设为1
-        "TIMEOUT": None,
+        "LOCATION": "redis://127.0.0.1:6379/2",
+        "TIMEOUT": 60 * 30,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
             "CONNECTION_POOL_KWARGS": {"max_connections": 100}
         }
     },
-
 }
+
+# REST_FRAMEWORK_EXTENSIONS = {
+#     "course": {
+#         'DEFAULT_CACHE_ERRORS': False
+#     },
+# }
 
 # Password validation
 # https://docs.djangoproject.com/en/1.9/ref/settings/#auth-password-validators
@@ -169,8 +174,8 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.UserRateThrottle'
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '5/minute',
-        'user': '5/minute'
+        'anon': '30/minute',
+        'user': '30/minute'
     },
 }
 

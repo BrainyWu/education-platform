@@ -1,6 +1,7 @@
 # _*_ encoding:utf-8 _*_
 from rest_framework import mixins, viewsets, status
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
+from rest_framework_extensions.cache.decorators import cache_response
 
 from .models import UserAsk, UserFavorite, Banner
 from .serializers import UserAskSerializer, UserFavoriteSerializer, BannerSerializer
@@ -25,6 +26,7 @@ class BannerViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
     def get_queryset(self):
         return Banner.objects.all().order_by('index')
 
+    @cache_response(timeout=60 * 60 * 12, cache='course')
     def list(self, request, *args, **kwargs):
         all_banners = self.filter_queryset(self.get_queryset())
         banners_serializer = self.get_serializer(all_banners, many=True)
@@ -42,7 +44,7 @@ class BannerViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
 class AddFavViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet):
     """添加收藏(1, "课程"), (2, "课程机构"), (3, "讲师")"""
     serializer_class = UserFavoriteSerializer
-    permission_classes = (IsAuthenticated, )
+    permission_classes = (IsAuthenticated,)
 
     def get_queryset(self):
         return UserFavorite.objects.filter(user=self.request.user).select_related('user')

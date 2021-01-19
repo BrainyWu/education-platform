@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 from django_filters.rest_framework import DjangoFilterBackend
 from django.contrib.auth import get_user_model
+from rest_framework_extensions.cache.mixins import CacheResponseMixin
+from rest_framework_extensions.cache.decorators import cache_response
 from rest_framework.authentication import SessionAuthentication, BasicAuthentication
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework import mixins, viewsets, filters, status
@@ -12,9 +14,9 @@ from .serializers import CourseSerializer, LessonSerializer, CourseResourceSeria
 from notifications.views import notification_handler
 from operation.models import UserFavorite, CourseComment, UserCourse
 from operation.serializers import CourseCommentSerializer
+# from lib.cachemixin import CacheResponseMixin
 from lib.utils import BasePagination, get_object
 from lib.response import Response
-
 
 User = get_user_model()
 
@@ -56,6 +58,7 @@ class CourseViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
         # 创建成功，消息通知管理员
         notification_handler(self.request.user, User.objects.filter(is_staff=1).first(), 'B', self.request)
 
+    @cache_response(timeout=60 * 10, cache='course')
     def list(self, request, *args, **kwargs):
         courses = self.filter_queryset(self.get_queryset())
 
@@ -67,6 +70,7 @@ class CourseViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
             'total': len_courses,
         }, status=status.HTTP_200_OK)
 
+    @cache_response(timeout=60 * 30, cache='course')
     def retrieve(self, request, *args, **kwargs):
         # 是否收藏课程
         has_fav_course = False
@@ -119,6 +123,7 @@ class CourseResourceViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
     def get_queryset(self):
         return CourseResource.objects.all().select_related('course')
 
+    @cache_response(timeout=60 * 10, cache='course')
     def list(self, request, *args, **kwargs):
         course_id = request.query_params.get('course_id', None)
 
@@ -130,6 +135,10 @@ class CourseResourceViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
         return Response({
             'course_resources': resources_serializer.data,
         }, status=status.HTTP_200_OK)
+
+    @cache_response(timeout=60 * 30, cache='course')
+    def retrieve(self, request, *args, **kwargs):
+        return super(CourseResourceViewSet, self).retrieve(request, *args, **kwargs)
 
 
 class LessonViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
@@ -154,6 +163,7 @@ class LessonViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
     def get_queryset(self):
         return Lesson.objects.all().select_related('course')
 
+    @cache_response(timeout=60 * 10, cache='course')
     def list(self, request, *args, **kwargs):
         course_id = request.query_params.get('course_id', None)
 
@@ -170,6 +180,10 @@ class LessonViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
             }, status=status.HTTP_200_OK)
         else:
             return super(LessonViewSet, self).list(request, *args, **kwargs)
+
+    @cache_response(timeout=60 * 30, cache='course')
+    def retrieve(self, request, *args, **kwargs):
+        return super(LessonViewSet, self).retrieve(request, *args, **kwargs)
 
 
 class VideoViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
@@ -194,6 +208,7 @@ class VideoViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
     def get_queryset(self):
         return Video.objects.all().select_related('lesson')
 
+    @cache_response(timeout=60 * 10, cache='course')
     def list(self, request, *args, **kwargs):
         lesson_id = request.query_params.get('lesson_id', None)
 
@@ -206,6 +221,10 @@ class VideoViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
             }, status=status.HTTP_200_OK)
         else:
             return super(VideoViewSet, self).list(request, *args, **kwargs)
+
+    @cache_response(timeout=60 * 30, cache='course')
+    def retrieve(self, request, *args, **kwargs):
+        return super(VideoViewSet, self).retrieve(request, *args, **kwargs)
 
 
 class CourseCommentViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
@@ -227,6 +246,7 @@ class CourseCommentViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
     def get_queryset(self):
         return CourseComment.objects.all().select_related('course')
 
+    @cache_response(timeout=60 * 10, cache='course')
     def list(self, request, *args, **kwargs):
         course_id = request.query_params.get('course_id', None)
 
@@ -239,3 +259,7 @@ class CourseCommentViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
             }, status=status.HTTP_200_OK)
         else:
             return super(CourseCommentViewSet, self).list(request, *args, **kwargs)
+
+    @cache_response(timeout=60 * 30, cache='course')
+    def retrieve(self, request, *args, **kwargs):
+        return super(CourseCommentViewSet, self).retrieve(request, *args, **kwargs)
