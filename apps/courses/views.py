@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from rest_framework_extensions.cache.mixins import CacheResponseMixin
 from rest_framework_extensions.cache.decorators import cache_response
 from rest_framework.authentication import SessionAuthentication, BasicAuthentication
-from rest_framework import permissions
+from rest_framework.permissions import IsAuthenticatedOrReadOnly
 from rest_framework import mixins, viewsets, filters, status
 from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 from rest_framework.decorators import action
@@ -34,7 +34,7 @@ class CourseViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
     """
     serializer_class = CourseSerializer
     pagination_class = BasePagination
-    # permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
+    # permission_classes = (IsAuthenticatedOrReadOnly,)
     throttle_classes = (UserRateThrottle, AnonRateThrottle)
     # filter_backends = (DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter)
     filter_fields = ("degree", "category")
@@ -44,7 +44,7 @@ class CourseViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
 
     def get_permissions(self):
         if self.action not in ["update", "destroy"]:
-            return [permissions.IsAuthenticatedOrReadOnly()]
+            return [IsAuthenticatedOrReadOnly()]
         else:
             # 只允许删除和和更新自己的课程
             return [IsOwnerOrReadOnly()]
@@ -58,7 +58,7 @@ class CourseViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
             return self.get_serializer(queryset, many=many)
 
     def get_queryset(self):
-        return Course.objects.all().select_related('org')
+        return Course.objects.all().select_related('org', 'user')
 
     def perform_create(self, serializer):
         serializer.save()
@@ -126,12 +126,12 @@ class CourseResourceViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
 
     def get_permissions(self):
         if self.action not in ["update", "destroy"]:
-            return [permissions.IsAuthenticatedOrReadOnly()]
+            return [IsAuthenticatedOrReadOnly()]
         else:
             return [IsOwnerOrReadOnly()]
 
     def get_queryset(self):
-        return CourseResource.objects.all().select_related('course')
+        return CourseResource.objects.all().select_related('course', 'user')
 
     def list(self, request, *args, **kwargs):
         course_id = request.query_params.get('course_id', None)
@@ -167,7 +167,7 @@ class LessonViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
 
     def get_permissions(self):
         if self.action not in ["update", "destroy"]:
-            return [permissions.IsAuthenticatedOrReadOnly()]
+            return [IsAuthenticatedOrReadOnly()]
         else:
             return [IsOwnerOrReadOnlyForCourse()]
 
@@ -214,10 +214,8 @@ class VideoViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
     ordering_fields = ("add_time",)
 
     def get_permissions(self):
-        if self.action in ["list", "retrieve"]:
-            return [permissions.AllowAny()]
-        elif self.action == "create":
-            return [permissions.IsAuthenticated()]
+        if self.action not in ["update", "destroy"]:
+            return [IsAuthenticatedOrReadOnly()]
         else:
             return [IsOwnerOrReadOnlyForCourse()]
 
@@ -256,7 +254,7 @@ class CourseCommentViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
 
     def get_permissions(self):
         if self.action not in ["update", "destroy"]:
-            return [permissions.IsAuthenticatedOrReadOnly()]
+            return [IsAuthenticatedOrReadOnly()]
         else:
             return [IsOwnerOrReadOnly()]
 
