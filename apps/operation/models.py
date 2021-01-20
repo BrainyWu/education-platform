@@ -36,7 +36,7 @@ class UserAsk(models.Model):
 
 
 class CourseComment(models.Model):
-    "课程评论"
+    """课程评论"""
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="用户")
     course = models.ForeignKey(Course, on_delete=models.CASCADE, verbose_name="课程")
     comments = models.CharField(max_length=200, verbose_name="评论")

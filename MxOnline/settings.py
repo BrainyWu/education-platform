@@ -111,9 +111,9 @@ CACHES = {
             # "PASSWORD":"xxxxxx" # 可能需要密码
         }
     },
-    "course": {
+    "cache1": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379/2",
+        "LOCATION": "redis://127.0.0.1:6379/1",
         "TIMEOUT": 60 * 30,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
@@ -122,10 +122,9 @@ CACHES = {
     },
 }
 
+# SESSION_CACHE_ALIAS = "cache1"
 # REST_FRAMEWORK_EXTENSIONS = {
-#     "course": {
-#         'DEFAULT_CACHE_ERRORS': False
-#     },
+#
 # }
 
 # Password validation
