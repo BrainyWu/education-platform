@@ -8,6 +8,7 @@ from .serializers import UserAskSerializer, UserFavoriteSerializer, BannerSerial
 from courses.models import Course
 from courses.serializers import CourseSerializer
 from lib.response import Response
+from lib.permissions import IsOwnerOrReadOnly
 from organization.serializers import Teacher, CourseOrg
 
 
@@ -21,12 +22,17 @@ class AddUserAskViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
 
 class BannerViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
     serializer_class = BannerSerializer
-    permission_classes = (IsAuthenticatedOrReadOnly,)
+
+    def get_permissions(self):
+        if self.action not in ["update", "destroy"]:
+            return [IsAuthenticatedOrReadOnly()]
+        else:
+            return [IsOwnerOrReadOnly()]
 
     def get_queryset(self):
         return Banner.objects.all().order_by('index')
 
-    @cache_response(timeout=60 * 60 * 12, cache='course')
+    # @cache_response(timeout=60 * 60 * 12, cache='course')
     def list(self, request, *args, **kwargs):
         all_banners = self.filter_queryset(self.get_queryset())
         banners_serializer = self.get_serializer(all_banners, many=True)

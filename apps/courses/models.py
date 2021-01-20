@@ -11,8 +11,20 @@ User = get_user_model()
 
 
 class Course(models.Model):
-    # 后期优化，指定课程上传用户
-    # user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="用户")
+    DEGREE_CHOICES = (
+        ("cj", "初级"),
+        ("zj", "中级"),
+        ("gj", "高级")
+    )
+    CATEGORY_CHOICES = (
+        ("develop", "开发"),
+        ("maintain", "运维"),
+        ("test", "测试"),
+        ("framework", "架构"),
+    )
+    # 上传课程的用户
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="用户")
+    category = models.CharField(default="develop", choices=CATEGORY_CHOICES, max_length=10, verbose_name="课程类别")
     org = models.ForeignKey(CourseOrg, on_delete=models.CASCADE, null=True, blank=True, verbose_name="课程机构")
     name = models.CharField(max_length=50, verbose_name="课程名")
     desc = models.CharField(max_length=300, default='', verbose_name="课程描述")
@@ -20,16 +32,14 @@ class Course(models.Model):
                           filePath="courses/ueditor/", default='')
     is_banner = models.BooleanField(default=False, verbose_name="是否轮播")
     teacher = models.ForeignKey(Teacher, on_delete=models.CASCADE, null=True, blank=True, verbose_name="讲师")
-    degree = models.CharField(verbose_name="难度", choices=(("cj", "初级"), ("zj", "中级"), ("gj", "高级")), max_length=2)
+    degree = models.CharField(verbose_name="难度", choices=DEGREE_CHOICES, max_length=2)
     learn_times = models.IntegerField(default=0, verbose_name="学习时长(分钟数)")
     students = models.IntegerField(db_index=True, default=0, verbose_name='学习人数')
     fav_nums = models.IntegerField(db_index=True, default=0, verbose_name='收藏人数')
     image = models.ImageField(blank=True, null=True, upload_to="courses/%Y/%m", verbose_name="封面图", max_length=100)
     click_nums = models.IntegerField(default=0, verbose_name="点击数")
-    category = models.CharField(default="后端开发", max_length=20, verbose_name="课程类别")
     tag = models.CharField(default="", verbose_name="课程标签", max_length=10)
     youneed_know = models.CharField(default="", max_length=300, verbose_name="课程须知")
-    teacher_tell = models.CharField(default="", max_length=300, verbose_name="老师告诉你")
 
     add_time = models.DateTimeField(db_index=True, default=datetime.now, verbose_name="添加时间")
 
@@ -97,6 +107,8 @@ class Video(models.Model):
 
 
 class CourseResource(models.Model):
+    # 上传课程资源的用户
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="用户")
     course = models.ForeignKey(Course, on_delete=models.CASCADE, verbose_name="课程")
     name = models.CharField(max_length=100, verbose_name="名称")
     download = models.FileField(upload_to="course/resource/%Y/%m", verbose_name="资源文件", max_length=100)

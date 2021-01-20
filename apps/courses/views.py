@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from rest_framework_extensions.cache.mixins import CacheResponseMixin
 from rest_framework_extensions.cache.decorators import cache_response
 from rest_framework.authentication import SessionAuthentication, BasicAuthentication
-from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
+from rest_framework import permissions
 from rest_framework import mixins, viewsets, filters, status
 from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 from rest_framework.decorators import action
@@ -14,9 +14,9 @@ from .serializers import CourseSerializer, LessonSerializer, CourseResourceSeria
 from notifications.views import notification_handler
 from operation.models import UserFavorite, CourseComment, UserCourse
 from operation.serializers import CourseCommentSerializer
-# from lib.cachemixin import CacheResponseMixin
 from lib.utils import BasePagination, get_object
 from lib.response import Response
+from lib.permissions import IsOwnerOrReadOnly, IsOwnerOrReadOnlyForCourse
 
 User = get_user_model()
 
@@ -34,13 +34,20 @@ class CourseViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
     """
     serializer_class = CourseSerializer
     pagination_class = BasePagination
-    permission_classes = (IsAuthenticatedOrReadOnly,)
+    # permission_classes = (permissions.IsAuthenticatedOrReadOnly,)
     throttle_classes = (UserRateThrottle, AnonRateThrottle)
     # filter_backends = (DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter)
     filter_fields = ("degree", "category")
     search_fields = ("name", "desc", "detail")
     ordering_fields = ("students", "add_time", "fav_nums")
     lookup_field = 'id'
+
+    def get_permissions(self):
+        if self.action not in ["update", "destroy"]:
+            return [permissions.IsAuthenticatedOrReadOnly()]
+        else:
+            # 只允许删除和和更新自己的课程
+            return [IsOwnerOrReadOnly()]
 
     def get_custom_serializer(self, queryset=None, many=True):
         page = self.paginate_queryset(queryset)
@@ -58,7 +65,6 @@ class CourseViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
         # 创建成功，消息通知管理员
         notification_handler(self.request.user, User.objects.filter(is_staff=1).first(), 'B', self.request)
 
-    @cache_response(timeout=60 * 10, cache='course')
     def list(self, request, *args, **kwargs):
         courses = self.filter_queryset(self.get_queryset())
 
@@ -70,7 +76,6 @@ class CourseViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
             'total': len_courses,
         }, status=status.HTTP_200_OK)
 
-    @cache_response(timeout=60 * 30, cache='course')
     def retrieve(self, request, *args, **kwargs):
         # 是否收藏课程
         has_fav_course = False
@@ -115,15 +120,19 @@ class CourseResourceViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
     """
     serializer_class = CourseResourceSerializer
     pagination_class = BasePagination
-    permission_classes = (IsAuthenticatedOrReadOnly,)
     filter_backends = (DjangoFilterBackend,)
     filter_fields = ("name", "course__degree", "course__category")
     lookup_field = 'id'
 
+    def get_permissions(self):
+        if self.action not in ["update", "destroy"]:
+            return [permissions.IsAuthenticatedOrReadOnly()]
+        else:
+            return [IsOwnerOrReadOnly()]
+
     def get_queryset(self):
         return CourseResource.objects.all().select_related('course')
 
-    @cache_response(timeout=60 * 10, cache='course')
     def list(self, request, *args, **kwargs):
         course_id = request.query_params.get('course_id', None)
 
@@ -132,11 +141,8 @@ class CourseResourceViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
         else:
             resources = CourseResource.objects.all()
         resources_serializer = CourseResourceSerializer(resources, many=True)
-        return Response({
-            'course_resources': resources_serializer.data,
-        }, status=status.HTTP_200_OK)
+        return Response(resources_serializer.data, status=status.HTTP_200_OK)
 
-    @cache_response(timeout=60 * 30, cache='course')
     def retrieve(self, request, *args, **kwargs):
         return super(CourseResourceViewSet, self).retrieve(request, *args, **kwargs)
 
@@ -155,15 +161,19 @@ class LessonViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
     """
     serializer_class = LessonSerializer
     pagination_class = BasePagination
-    permission_classes = (IsAuthenticatedOrReadOnly,)
     filter_fields = ("name",)
     search_fields = ("name",)
     ordering_fields = ("add_time",)
 
+    def get_permissions(self):
+        if self.action not in ["update", "destroy"]:
+            return [permissions.IsAuthenticatedOrReadOnly()]
+        else:
+            return [IsOwnerOrReadOnlyForCourse()]
+
     def get_queryset(self):
         return Lesson.objects.all().select_related('course')
 
-    @cache_response(timeout=60 * 10, cache='course')
     def list(self, request, *args, **kwargs):
         course_id = request.query_params.get('course_id', None)
 
@@ -181,7 +191,6 @@ class LessonViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
         else:
             return super(LessonViewSet, self).list(request, *args, **kwargs)
 
-    @cache_response(timeout=60 * 30, cache='course')
     def retrieve(self, request, *args, **kwargs):
         return super(LessonViewSet, self).retrieve(request, *args, **kwargs)
 
@@ -200,15 +209,21 @@ class VideoViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
     """
     serializer_class = VideoSerializer
     pagination_class = BasePagination
-    permission_classes = (IsAuthenticatedOrReadOnly,)
-    filter_fields = ("name", "name")
+    filter_fields = ("name", )
     search_fields = ("name",)
     ordering_fields = ("add_time",)
+
+    def get_permissions(self):
+        if self.action in ["list", "retrieve"]:
+            return [permissions.AllowAny()]
+        elif self.action == "create":
+            return [permissions.IsAuthenticated()]
+        else:
+            return [IsOwnerOrReadOnlyForCourse()]
 
     def get_queryset(self):
         return Video.objects.all().select_related('lesson')
 
-    @cache_response(timeout=60 * 10, cache='course')
     def list(self, request, *args, **kwargs):
         lesson_id = request.query_params.get('lesson_id', None)
 
@@ -216,13 +231,10 @@ class VideoViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
             videos = Video.objects.filter(lesson=int(lesson_id))
             video_serializer = self.get_serializer(videos, many=True)
 
-            return Response({
-                'videos': video_serializer.data,
-            }, status=status.HTTP_200_OK)
+            return Response(video_serializer.data, status=status.HTTP_200_OK)
         else:
             return super(VideoViewSet, self).list(request, *args, **kwargs)
 
-    @cache_response(timeout=60 * 30, cache='course')
     def retrieve(self, request, *args, **kwargs):
         return super(VideoViewSet, self).retrieve(request, *args, **kwargs)
 
@@ -241,12 +253,16 @@ class CourseCommentViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
     """
     serializer_class = CourseCommentSerializer
     pagination_class = BasePagination
-    permission_classes = (IsAuthenticatedOrReadOnly,)
+
+    def get_permissions(self):
+        if self.action not in ["update", "destroy"]:
+            return [permissions.IsAuthenticatedOrReadOnly()]
+        else:
+            return [IsOwnerOrReadOnly()]
 
     def get_queryset(self):
         return CourseComment.objects.all().select_related('course')
 
-    @cache_response(timeout=60 * 10, cache='course')
     def list(self, request, *args, **kwargs):
         course_id = request.query_params.get('course_id', None)
 
@@ -254,12 +270,9 @@ class CourseCommentViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
             course_comment = CourseComment.objects.filter(course=int(course_id)).order_by("add_time")
             course_comment_serializer = self.get_serializer(course_comment, many=True)
 
-            return Response({
-                'course_comments': course_comment_serializer.data,
-            }, status=status.HTTP_200_OK)
+            return Response(course_comment_serializer.data, status=status.HTTP_200_OK)
         else:
             return super(CourseCommentViewSet, self).list(request, *args, **kwargs)
 
-    @cache_response(timeout=60 * 30, cache='course')
     def retrieve(self, request, *args, **kwargs):
         return super(CourseCommentViewSet, self).retrieve(request, *args, **kwargs)
