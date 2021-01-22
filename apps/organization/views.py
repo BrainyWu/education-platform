@@ -19,7 +19,7 @@ class OrgViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
     permission_classes = (IsAuthenticatedOrReadOnly,)
     filter_fields = ("name", "category", 'city')
     search_fields = ("name", "desc")
-    ordering_fields = ("students", "click_nums", "add_time", "course_nums")
+    ordering_fields = ("students", "click_nums", "_time", "course_nums")
     lookup_field = 'id'
 
     # def get_permissions(self):
@@ -42,7 +42,7 @@ class OrgViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
                 has_fav = True
         serializer = self.get_serializer(org)
         return Response({
-            'course_org': serializer.data,
+            'course_org': serializer,
             'has_fav': has_fav
         })
 
@@ -54,7 +54,7 @@ class CityViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
     permission_classes = (IsAuthenticatedOrReadOnly,)
     filter_backends = (filters.SearchFilter, filters.OrderingFilter)
     search_fields = ("name", "desc")
-    ordering_fields = ("add_time",)
+    ordering_fields = ("created_time",)
 
     def get_queryset(self):
         return OrgCity.objects.all()
@@ -87,13 +87,13 @@ class TeacherViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
             teachers = course_org.teacher_set.all()
             teachers_serializer = self.get_serializer(teachers, many=True)
             return Response({
-                'all_teachers': teachers_serializer.data,
+                'teachers': teachers_serializer.data,
                 'has_fav': has_fav
             })
         else:
             teachers_serializer = self.get_serializer(self.get_queryset(), many=True)
             return Response({
-                'all_teachers': teachers_serializer.data,
+                'teachers': teachers_serializer.data,
             })
 
     def retrieve(self, request, *args, **kwargs):

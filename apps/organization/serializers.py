@@ -8,6 +8,12 @@ from .models import CourseOrg, OrgCity, Teacher
 
 
 class CourseOrgSerializer(serializers.ModelSerializer):
+    # 统计机构老师数量
+    teacher_nums = serializers.SerializerMethodField(read_only=True)
+
+    def get_teacher_nums(self, obj):
+        return obj.get_teacher_nums()
+
     class Meta:
         model = CourseOrg
         fields = "__all__"

@@ -3,12 +3,12 @@ from rest_framework import mixins, viewsets, status
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework_extensions.cache.decorators import cache_response
 
-from .models import UserAsk, UserFavorite, Banner
-from .serializers import UserAskSerializer, UserFavoriteSerializer, BannerSerializer
+from .models import UserAsk, UserFavorite, Banner, UserCourse
+from .serializers import UserAskSerializer, UserFavoriteSerializer, BannerSerializer, UserCourseSerializer
 from courses.models import Course
 from courses.serializers import CourseSerializer
 from lib.response import Response
-from lib.permissions import IsOwnerOrReadOnly
+from lib.permissions import IsOwnerOrReadOnly, IsAdminUserOrReadOnly
 from organization.serializers import Teacher, CourseOrg
 
 
@@ -20,8 +20,11 @@ class AddUserAskViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
         return UserAsk.objects.filter(user=self.request.user)
 
 
-class BannerViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
-    serializer_class = BannerSerializer
+class UserCourseViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
+    serializer_class = UserCourseSerializer
+
+    def get_queryset(self):
+        return UserCourse.objects.all()
 
     def get_permissions(self):
         if self.action not in ["update", "destroy"]:
@@ -29,10 +32,14 @@ class BannerViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
         else:
             return [IsOwnerOrReadOnly()]
 
+
+class BannerViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
+    serializer_class = BannerSerializer
+    permission_classes = (IsAdminUserOrReadOnly, )  # 只允许管理员创建,更新和删除
+
     def get_queryset(self):
         return Banner.objects.all().order_by('index')
 
-    # @cache_response(timeout=60 * 60 * 12, cache='course')
     def list(self, request, *args, **kwargs):
         all_banners = self.filter_queryset(self.get_queryset())
         banners_serializer = self.get_serializer(all_banners, many=True)
