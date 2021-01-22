@@ -12,7 +12,7 @@ from rest_framework.decorators import action
 from .models import Course, CourseResource, Lesson, Video
 from .serializers import CourseSerializer, LessonSerializer, CourseResourceSerializer, VideoSerializer
 from notifications.views import notification_handler
-from operation.models import UserFavorite, CourseComment, UserCourse
+from operation.models import UserFavorite, CourseComment
 from operation.serializers import CourseCommentSerializer
 from lib.utils import BasePagination, get_object
 from lib.response import Response
@@ -39,7 +39,7 @@ class CourseViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
     # filter_backends = (DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter)
     filter_fields = ("degree", "category")
     search_fields = ("name", "desc", "detail")
-    ordering_fields = ("students", "add_time", "fav_nums")
+    ordering_fields = ("students", "created_time", "fav_nums")
     lookup_field = 'id'
 
     def get_permissions(self):
@@ -58,7 +58,12 @@ class CourseViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
             return self.get_serializer(queryset, many=many)
 
     def get_queryset(self):
-        return Course.objects.all().select_related('org', 'user')
+        # return Course.objects.raw("SELECT d.*, GROUP_CONCAT((SELECT u.username FROM user_info u "
+        #                           "WHERE u.id=uc.user_id LIMIT 10)) learn_users FROM ("
+        #                           "SELECT c.*, GROUP_CONCAT(cl.`name`) lessons FROM course c "
+        #                           "LEFT JOIN course_lesson cl ON c.id=cl.course_id GROUP BY cl.course_id) d "
+        #                           "LEFT JOIN user_course uc ON d.id=uc.course_id GROUP BY uc.course_id")
+        return Course.objects.all().select_related('org', 'user', 'teacher')
 
     def perform_create(self, serializer):
         serializer.save()
@@ -67,14 +72,9 @@ class CourseViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
 
     def list(self, request, *args, **kwargs):
         courses = self.filter_queryset(self.get_queryset())
-
         courses_serializer = self.get_custom_serializer(courses)
-        len_courses = len(courses)
 
-        return Response({
-            'all_courses': courses_serializer.data,
-            'total': len_courses,
-        }, status=status.HTTP_200_OK)
+        return Response(courses_serializer.data, status=status.HTTP_200_OK)
 
     def retrieve(self, request, *args, **kwargs):
         # 是否收藏课程
@@ -143,9 +143,6 @@ class CourseResourceViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
         resources_serializer = CourseResourceSerializer(resources, many=True)
         return Response(resources_serializer.data, status=status.HTTP_200_OK)
 
-    def retrieve(self, request, *args, **kwargs):
-        return super(CourseResourceViewSet, self).retrieve(request, *args, **kwargs)
-
 
 class LessonViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
     """
@@ -163,7 +160,7 @@ class LessonViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
     pagination_class = BasePagination
     filter_fields = ("name",)
     search_fields = ("name",)
-    ordering_fields = ("add_time",)
+    ordering_fields = ("created_time",)
 
     def get_permissions(self):
         if self.action not in ["update", "destroy"]:
@@ -178,21 +175,11 @@ class LessonViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
         course_id = request.query_params.get('course_id', None)
 
         if course_id:
-            course = Course.objects.get(id=int(course_id))
             lessons = Lesson.objects.filter(course=int(course_id))
-
-            course_serializer = CourseSerializer(course)
             lessons_serializer = LessonSerializer(lessons, many=True)
-
-            return Response({
-                'course': course_serializer.data,
-                'lessons': lessons_serializer.data,
-            }, status=status.HTTP_200_OK)
+            return Response(lessons_serializer.data, status=status.HTTP_200_OK)
         else:
             return super(LessonViewSet, self).list(request, *args, **kwargs)
-
-    def retrieve(self, request, *args, **kwargs):
-        return super(LessonViewSet, self).retrieve(request, *args, **kwargs)
 
 
 class VideoViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
@@ -211,7 +198,7 @@ class VideoViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
     pagination_class = BasePagination
     filter_fields = ("name", )
     search_fields = ("name",)
-    ordering_fields = ("add_time",)
+    ordering_fields = ("created_time",)
 
     def get_permissions(self):
         if self.action not in ["update", "destroy"]:
@@ -232,9 +219,6 @@ class VideoViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
             return Response(video_serializer.data, status=status.HTTP_200_OK)
         else:
             return super(VideoViewSet, self).list(request, *args, **kwargs)
-
-    def retrieve(self, request, *args, **kwargs):
-        return super(VideoViewSet, self).retrieve(request, *args, **kwargs)
 
 
 class CourseCommentViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
@@ -265,12 +249,9 @@ class CourseCommentViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
         course_id = request.query_params.get('course_id', None)
 
         if course_id:
-            course_comment = CourseComment.objects.filter(course=int(course_id)).order_by("add_time")
+            course_comment = CourseComment.objects.filter(course=int(course_id)).order_by("created_time")
             course_comment_serializer = self.get_serializer(course_comment, many=True)
 
             return Response(course_comment_serializer.data, status=status.HTTP_200_OK)
         else:
             return super(CourseCommentViewSet, self).list(request, *args, **kwargs)
-
-    def retrieve(self, request, *args, **kwargs):
-        return super(CourseCommentViewSet, self).retrieve(request, *args, **kwargs)

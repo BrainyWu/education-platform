@@ -3,12 +3,10 @@ __author__ = 'wuhai'
 import re
 
 from django.contrib.auth import get_user_model
-
+from rest_framework.validators import UniqueTogetherValidator
 from rest_framework import serializers
 
 from .models import UserFavorite, UserAsk, UserCourse, UserMessage, CourseComment, Banner
-from courses.serializers import CourseSerializer
-from lib.utils import get_object
 
 User = get_user_model()
 
@@ -27,7 +25,7 @@ class UserMessageSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserMessage
-        fields = ('username', 'user_mobile', 'user_image', 'message', 'has_read', 'add_time')
+        fields = ('username', 'user_mobile', 'user_image', 'message', 'has_read', 'created_time')
 
 
 class UserFavoriteSerializer(serializers.ModelSerializer):
@@ -37,18 +35,26 @@ class UserFavoriteSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = UserFavorite
-        fields = ('username', 'user_mobile', 'user_image', 'fav_id', 'fav_type', 'add_time')
+        fields = ('username', 'user_mobile', 'user_image', 'fav_id', 'fav_type', 'created_time')
 
 
 class UserCourseSerializer(serializers.ModelSerializer):
-    username = serializers.CharField(source='user.username')
-    user_mobile = serializers.CharField(source='user.mobile')
-    user_image = serializers.ImageField(source='user.image')
-    course = CourseSerializer(read_only=True, many=True)
+    username = serializers.CharField(source='user.username', read_only=True)
+    user_mobile = serializers.CharField(source='user.mobile', read_only=True)
+    # user_image = serializers.ImageField(source='user.image', read_only=True)
+    user = serializers.HiddenField(default=serializers.CurrentUserDefault())
 
     class Meta:
         model = UserCourse
-        fields = ('username', 'user_mobile', 'user_image', 'course', 'add_time')
+        fields = "__all__"
+        # 用户学习的课程不能重复
+        validators = [
+            UniqueTogetherValidator(
+                queryset=UserCourse.objects.all(),
+                fields=('user', 'course'),
+                message="此课程用户已加入学习"
+            )
+        ]
 
 
 class CourseCommentSerializer(serializers.ModelSerializer):

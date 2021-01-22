@@ -11,6 +11,7 @@ router = DefaultRouter()
 router.register(r'add_ask', views.AddUserAskViewSet, basename="addask")
 router.register(r'add_fav', views.AddFavViewSet, basename="addfav")
 router.register(r'banners', views.BannerViewSet, basename="banners")
+router.register(r'usercourse', views.UserCourseViewSet, basename="usercourse")
 
 urlpatterns = [
     url(r'^', include(router.urls)),
