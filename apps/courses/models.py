@@ -40,13 +40,14 @@ class Course(models.Model):
     click_nums = models.IntegerField(default=0, verbose_name="点击数")
     tag = models.CharField(default="", verbose_name="课程标签", max_length=10)
     youneed_know = models.CharField(default="", max_length=300, verbose_name="课程须知")
-
-    add_time = models.DateTimeField(db_index=True, default=datetime.now, verbose_name="添加时间")
+    created_time = models.DateTimeField(db_index=True, auto_now_add=True, verbose_name="创建时间")
+    updated_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:
         db_table = 'course'
         verbose_name = "课程"
         verbose_name_plural = verbose_name
+        ordering = ('-created_time', )
 
     def __str__(self):
         return self.name
@@ -56,11 +57,11 @@ class Course(models.Model):
         return self.lesson_set.all().count()
 
     def get_learn_users(self):
-        return self.usercourse_set.all()[:5]
+        return [obj.user.username for obj in self.usercourse_set.all()][:10]
 
-    def get_course_lesson(self):
-        # 获取课程所有章节
-        return self.lesson_set.all()
+    def get_lessons(self):
+        # 获取课程所有章节和视频
+        return [{'name': obj.name, 'videos': obj.get_videos()} for obj in self.lesson_set.all()]
 
 
 class BannerCourse(Course):
@@ -69,25 +70,29 @@ class BannerCourse(Course):
         verbose_name = "轮播课程"
         verbose_name_plural = verbose_name
         proxy = True  # 不会生成新的表
+        ordering = ('-created_time', )
 
 
 class Lesson(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, verbose_name="课程")
     name = models.CharField(max_length=100, verbose_name="章节名")
-    learn_times = models.IntegerField(default=0, verbose_name="学习时长(分钟数)")
-    add_time = models.DateTimeField(db_index=True, default=datetime.now, verbose_name="添加时间")
+    created_time = models.DateTimeField(db_index=True, auto_now_add=True, verbose_name="创建时间")
+    updated_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:
         db_table = 'course_lesson'
         verbose_name = "章节"
         verbose_name_plural = verbose_name
+        ordering = ('course', '-created_time')
 
     def __str__(self):
         return self.name
 
-    def get_lesson_video(self):
+    def get_videos(self):
         # 获取章节视频
-        return self.video_set.all()
+        # return self.video_set.all()
+        return [{'name': obj.name, 'learn_times': obj.learn_times, 'url': obj.url, 'created_time': obj.created_time}
+                for obj in self.video_set.all()]
 
 
 class Video(models.Model):
@@ -95,12 +100,14 @@ class Video(models.Model):
     name = models.CharField(max_length=100, verbose_name="视频名")
     learn_times = models.IntegerField(default=0, verbose_name="学习时长(分钟数)")
     url = models.CharField(max_length=200, null=False, blank=False, verbose_name="访问地址")
-    add_time = models.DateTimeField(default=datetime.now, verbose_name="添加时间")
+    created_time = models.DateTimeField(db_index=True, auto_now_add=True, verbose_name="创建时间")
+    updated_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:
         db_table = 'lesson_video'
         verbose_name = "视频"
         verbose_name_plural = verbose_name
+        ordering = ('lesson', '-created_time')
 
     def __str__(self):
         return self.name
@@ -112,9 +119,11 @@ class CourseResource(models.Model):
     course = models.ForeignKey(Course, on_delete=models.CASCADE, verbose_name="课程")
     name = models.CharField(max_length=100, verbose_name="名称")
     download = models.FileField(upload_to="course/resource/%Y/%m", verbose_name="资源文件", max_length=100)
-    add_time = models.DateTimeField(default=datetime.now, verbose_name="添加时间")
+    created_time = models.DateTimeField(db_index=True, auto_now_add=True, verbose_name="创建时间")
+    updated_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:
         db_table = 'course_resource'
         verbose_name = "课程资源"
         verbose_name_plural = verbose_name
+        ordering = ('course', '-created_time')

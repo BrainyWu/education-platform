@@ -6,9 +6,9 @@ from .models import OrgCity, CourseOrg, Teacher
 
 
 class OrgCityAdmin(object):
-    list_display = ['name', 'desc', 'add_time']
+    list_display = ['name', 'desc', 'created_time']
     search_fields = ['name', 'desc']
-    list_filter = ['name', 'desc', 'add_time']
+    list_filter = ['name', 'desc', 'created_time']
     model_icon = 'fa fa-university'
 
 
