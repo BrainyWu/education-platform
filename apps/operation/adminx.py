@@ -7,43 +7,43 @@ from .models import UserAsk, UserCourse, UserMessage, CourseComment, UserFavorit
 
 
 class BannerAdmin(object):
-    list_display = ['title', 'image', 'url', 'index', 'add_time']
+    list_display = ['title', 'image', 'url', 'index', 'created_time']
     search_fields = ['title', 'image', 'url', 'index']
-    list_filter = ['title', 'image', 'url', 'index', 'add_time']
+    list_filter = ['title', 'image', 'url', 'index', 'created_time']
 
 
 class UserAskAdmin(object):
-    list_display = ['name', 'mobile', 'course_name', 'add_time']
+    list_display = ['name', 'mobile', 'course_name', 'created_time']
     search_fields = ['name', 'mobile', 'course_name']
-    list_filter = ['name', 'mobile', 'course_name', 'add_time']
+    list_filter = ['name', 'mobile', 'course_name', 'created_time']
     model_icon = 'fa fa-question-circle'
 
 
 class UserCourseAdmin(object):
-    list_display = ['user', 'course', 'add_time']
+    list_display = ['user', 'course', 'created_time']
     search_fields = ['user', 'course']
-    list_filter = ['user', 'course', 'add_time']
+    list_filter = ['user', 'course', 'created_time']
     model_icon = 'fa fa-address-book'
 
 
 class UserMessageAdmin(object):
-    list_display = ['user', 'message', 'has_read', 'add_time']
+    list_display = ['user', 'message', 'has_read', 'created_time']
     search_fields = ['user', 'message', 'has_read']
-    list_filter = ['user', 'message', 'has_read', 'add_time']
+    list_filter = ['user', 'message', 'has_read', 'created_time']
     model_icon = 'fa fa-envelope-o'
 
 
 class CourseCommentAdmin(object):
-    list_display = ['user', 'course', 'comments', 'add_time']
+    list_display = ['user', 'course', 'comments', 'created_time']
     search_fields = ['user', 'course', 'comments']
-    list_filter = ['user', 'course', 'comments', 'add_time']
+    list_filter = ['user', 'course', 'comments', 'created_time']
     model_icon = 'fa fa-comment'
 
 
 class UserFavoriteAdmin(object):
-    list_display = ['user', 'fav_id', 'fav_type', 'add_time']
+    list_display = ['user', 'fav_id', 'fav_type', 'created_time']
     search_fields = ['user', 'fav_id', 'fav_type']
-    list_filter = ['user', 'fav_id', 'fav_type', 'add_time']
+    list_filter = ['user', 'fav_id', 'fav_type', 'created_time']
     model_icon = 'fa fa-heart'
 
 

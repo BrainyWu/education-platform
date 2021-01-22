@@ -68,7 +68,6 @@ class Notification(models.Model):
     slug = models.SlugField(max_length=80, null=True, blank=True, verbose_name='(URL)别名')
     verb = models.CharField(max_length=1, choices=NOTIFICATION_TYPE, verbose_name="通知类别")
     created_at = models.DateTimeField(db_index=True, auto_now_add=True, verbose_name='创建时间')
-    updated_at = models.DateTimeField(auto_now=True, verbose_name='更新时间')
 
     content_type = models.ForeignKey(ContentType, related_name='notify_action_object', null=True, blank=True,
                                      on_delete=models.CASCADE)

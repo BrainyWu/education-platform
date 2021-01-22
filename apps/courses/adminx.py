@@ -65,22 +65,22 @@ class BannerCourseAdmin(object):
 
 
 class LessonAdmin(object):
-    list_display = ['course', 'name', 'add_time']
+    list_display = ['course', 'name', 'created_time']
     search_fields = ['course', 'name']
-    list_filter = ['course__name', 'name', 'add_time']
+    list_filter = ['course__name', 'name', 'created_time']
 
 
 class VideoAdmin(object):
-    list_display = ['lesson', 'name', 'add_time']
+    list_display = ['lesson', 'name', 'created_time']
     search_fields = ['lesson', 'name']
-    list_filter = ['lesson', 'name', 'add_time']
+    list_filter = ['lesson', 'name', 'created_time']
     model_icon = 'fa fa-film'
 
 
 class CourseResourceAdmin(object):
-    list_display = ['course', 'name', 'download', 'add_time']
+    list_display = ['course', 'name', 'download', 'created_time']
     search_fields = ['course', 'name', 'download']
-    list_filter = ['course', 'name', 'download', 'add_time']
+    list_filter = ['course', 'name', 'download', 'created_time']
 
 
 xadmin.site.register(Course, CourseAdmin)

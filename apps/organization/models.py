@@ -8,7 +8,8 @@ from DjangoUeditor.models import UEditorField
 class OrgCity(models.Model):
     name = models.CharField(max_length=20, verbose_name="城市")
     desc = models.CharField(max_length=200, default="", verbose_name="描述")
-    add_time = models.DateTimeField(default=datetime.now)
+    created_time = models.DateTimeField(db_index=True, auto_now_add=True, verbose_name="创建时间")
+    updated_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:
         db_table = 'org_city'
@@ -32,7 +33,8 @@ class CourseOrg(models.Model):
     city = models.ForeignKey(OrgCity, on_delete=models.CASCADE, verbose_name="所在城市")
     students = models.IntegerField(default=0, verbose_name="学习人数")
     course_nums = models.IntegerField(default=0, verbose_name="课程数")
-    add_time = models.DateTimeField(default=datetime.now)
+    created_time = models.DateTimeField(db_index=True, auto_now_add=True, verbose_name="创建时间")
+    updated_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:
         db_table = 'course_org'
@@ -58,7 +60,8 @@ class Teacher(models.Model):
     fav_nums = models.IntegerField(default=0, verbose_name="收藏数")
     age = models.IntegerField(default=18, verbose_name="年龄")
     image = models.ImageField(blank=True, null=True, upload_to="teacher/%Y/%m", verbose_name="头像", max_length=100)
-    add_time = models.DateTimeField(default=datetime.now)
+    created_time = models.DateTimeField(db_index=True, auto_now_add=True, verbose_name="创建时间")
+    updated_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
 
     class Meta:
         db_table = 'teacher'
