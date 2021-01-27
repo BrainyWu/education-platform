@@ -28,6 +28,8 @@ def custom_exception_handler(exc, context):
     response = exception_handler(exc, context)
 
     if response is not None:
+        if not isinstance(response.data, dict):
+            response.data = {}
         response.data['data'] = {}
         response.data['code'] = -1
         response.data['msg'] = {'error': str(exc)}

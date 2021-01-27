@@ -1,6 +1,7 @@
 # _*_ encoding:utf-8 _*_
 from rest_framework import mixins, viewsets, status
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
+from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework_extensions.cache.decorators import cache_response
 
 from .models import UserAsk, UserFavorite, Banner, UserCourse
@@ -9,6 +10,7 @@ from courses.models import Course
 from courses.serializers import CourseSerializer
 from lib.response import Response
 from lib.permissions import IsOwnerOrReadOnly, IsAdminUserOrReadOnly
+from lib.utils import get_object
 from organization.serializers import Teacher, CourseOrg
 
 
@@ -55,70 +57,40 @@ class BannerViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
 
 
 class AddFavViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet):
-    """添加收藏(1, "课程"), (2, "课程机构"), (3, "讲师")"""
+    """添加, 取消收藏(1, "课程"), (2, "课程机构"), (3, "讲师")"""
     serializer_class = UserFavoriteSerializer
     permission_classes = (IsAuthenticated,)
 
     def get_queryset(self):
         return UserFavorite.objects.filter(user=self.request.user).select_related('user')
 
-    def create(self, request, *args, **kwargs):
-        fav_id = request.data.get('fav_id', 0)
-        fav_type = request.data.get('fav_type', 0)
+    def obj_map(self, fav_type=None, fav_id=None):
+        if int(fav_type) == 1:
+            obj = get_object(Course, object_id=int(fav_id))
+        elif int(fav_type) == 2:
+            obj = get_object(CourseOrg, object_id=int(fav_id))
+        elif int(fav_type) == 3:
+            obj = get_object(Teacher, object_id=int(fav_id))
+        else:
+            raise ValueError("Fav type incorrect.")
+        return obj
 
+    def create(self, request, *args, **kwargs):
+        fav_id = request.data.get('fav_id', None)
+        fav_type = request.data.get('fav_type', None)
+        if fav_id is None or fav_type is None:
+            return Response(code=-1, msg='Fav_id and Fav type are required.', status=status.HTTP_400_BAD_REQUEST)
+
+        obj = self.obj_map(fav_type, fav_id)
         exist_records = UserFavorite.objects.filter(user=request.user, fav_id=int(fav_id), fav_type=int(fav_type))
         if exist_records:
-            # 如果记录已经存在， 则表示用户取消收藏
+            # 记录已经存在， 则表示用户取消收藏, fav_nums减一
             exist_records.delete()
-            if int(fav_type) == 1:
-                course = Course.objects.get(id=int(fav_id))
-                course.fav_nums -= 1
-                if course.fav_nums < 0:
-                    course.fav_nums = 0
-                course.save()
-            elif int(fav_type) == 2:
-                course_org = CourseOrg.objects.get(id=int(fav_id))
-                course_org.fav_nums -= 1
-                if course_org.fav_nums < 0:
-                    course_org.fav_nums = 0
-                course_org.save()
-            elif int(fav_type) == 3:
-                teacher = Teacher.objects.get(id=int(fav_id))
-                teacher.fav_nums -= 1
-                if teacher.fav_nums < 0:
-                    teacher.fav_nums = 0
-                teacher.save()
+            obj.modify_fav_nums(incr=False)
             return Response(status=status.HTTP_204_NO_CONTENT)
         else:
+            # 记录不存在， 则表示用户收藏, fav_nums加一
             user_fav = UserFavorite()
-            if int(fav_id) > 0 and int(fav_type) > 0:
-                user_fav.user = request.user
-                user_fav.fav_id = int(fav_id)
-                user_fav.fav_type = int(fav_type)
-                user_fav.save()
-
-                if int(fav_type) == 1:
-                    course = Course.objects.get(id=int(fav_id))
-                    course.fav_nums += 1
-                    course.save()
-                elif int(fav_type) == 2:
-                    course_org = CourseOrg.objects.get(id=int(fav_id))
-                    course_org.fav_nums += 1
-                    course_org.save()
-                elif int(fav_type) == 3:
-                    teacher = Teacher.objects.get(id=int(fav_id))
-                    teacher.fav_nums += 1
-                    teacher.save()
-                else:
-                    return Response(
-                        code=-1,
-                        msg='Fav type is invalid.',
-                        status=status.HTTP_400_BAD_REQUEST,
-                    )
-                return Response(status=status.HTTP_201_CREATED)
-            else:
-                return Response(
-                    code=-1,
-                    msg='Add favorite fail.',
-                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                )
+            user_fav.create(user=request.user, fav_id=int(fav_id), fav_type=int(fav_type))
+            obj.modify_fav_nums(incr=True)
+            return Response(status=status.HTTP_201_CREATED)
