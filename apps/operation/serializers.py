@@ -29,13 +29,16 @@ class UserMessageSerializer(serializers.ModelSerializer):
 
 
 class UserFavoriteSerializer(serializers.ModelSerializer):
-    username = serializers.CharField(source='user.username')
-    user_mobile = serializers.CharField(source='user.mobile')
-    user_image = serializers.ImageField(source='user.image')
+    user = serializers.HiddenField(
+        default=serializers.CurrentUserDefault()
+    )
+    username = serializers.CharField(source='user.username', read_only=True)
+    # user_mobile = serializers.CharField(source='user.mobile', read_only=True)
+    # user_image = serializers.ImageField(source='user.image', read_only=True)
 
     class Meta:
         model = UserFavorite
-        fields = ('username', 'user_mobile', 'user_image', 'fav_id', 'fav_type', 'created_time')
+        fields = "__all__"
 
 
 class UserCourseSerializer(serializers.ModelSerializer):

@@ -41,12 +41,21 @@ class CourseOrg(models.Model):
         verbose_name = "课程机构"
         verbose_name_plural = verbose_name
 
+    def __str__(self):
+        return self.name
+
     def get_teacher_nums(self):
         #获取课程机构的教师数量
         return self.teacher_set.all().count()
 
-    def __str__(self):
-        return self.name
+    def modify_fav_nums(self, incr=True):
+        if incr:
+            self.fav_nums += 1
+        else:
+            self.fav_nums -= 1
+            if self.fav_nums < 0:
+                self.fav_nums = 0
+        self.save()
 
 
 class Teacher(models.Model):
@@ -73,3 +82,12 @@ class Teacher(models.Model):
 
     def get_course_nums(self):
         return self.course_set.all().count()
+
+    def modify_fav_nums(self, incr=True):
+        if incr:
+            self.fav_nums += 1
+        else:
+            self.fav_nums -= 1
+            if self.fav_nums < 0:
+                self.fav_nums = 0
+        self.save()

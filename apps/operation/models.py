@@ -80,6 +80,12 @@ class UserFavorite(models.Model):
         verbose_name = "用户收藏"
         verbose_name_plural = verbose_name
 
+    def create(self, **kwargs):
+        self.user = kwargs['user']
+        self.fav_id = kwargs['fav_id']
+        self.fav_type = kwargs['fav_type']
+        self.save()
+
 
 class MessageQuerySet(models.query.QuerySet):
     """User Message QuerySet"""

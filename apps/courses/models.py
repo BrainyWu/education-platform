@@ -63,6 +63,15 @@ class Course(models.Model):
         # 获取课程所有章节和视频
         return [{'name': obj.name, 'videos': obj.get_videos()} for obj in self.lesson_set.all()]
 
+    def modify_fav_nums(self, incr=True):
+        if incr:
+            self.fav_nums += 1
+        else:
+            self.fav_nums -= 1
+            if self.fav_nums < 0:
+                self.fav_nums = 0
+        self.save()
+
 
 class BannerCourse(Course):
     class Meta:
