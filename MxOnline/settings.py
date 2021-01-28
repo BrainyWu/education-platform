@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'channels',
     'users',
     'courses',
     'organization',
@@ -119,6 +120,18 @@ CACHES = {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
             "CONNECTION_POOL_KWARGS": {"max_connections": 100}
         }
+    },
+}
+
+# ASGI server setup
+ASGI_APPLICATION = 'MxOnline.routing.application'
+# 频道层的缓存
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": ["redis://127.0.0.1:6379/3"],  # channel layers缓存使用Redis 3
+        },
     },
 }
 

@@ -6,8 +6,10 @@ import uuid
 from django.conf import settings
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
-from django.db import models
 from django.core import serializers
+from django.db import models
+from django.utils.timesince import timesince as timesince_
+
 
 from slugify import slugify
 
@@ -56,8 +58,6 @@ class Notification(models.Model):
         ('C', '评论了'),  # comment
         ('F', '收藏了'),  # favor
         ('R', '回复了'),  # reply
-        ('I', '登录'),  # logged in
-        ('O', '退出'),  # logged out
     )
     uuid_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     actor = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="notify_actor",
@@ -84,7 +84,7 @@ class Notification(models.Model):
     def __str__(self):
         ctx = {
             'actor': self.actor,
-            'verb': self.verb,
+            'verb': self.get_verb_display(),
             'action_object': self.action_object,
             'timesince': self.timesince()
         }
@@ -93,11 +93,6 @@ class Notification(models.Model):
         return u'%(actor)s %(verb)s %(timesince)s ago' % ctx
 
     def timesince(self, now=None):
-        """
-        Shortcut for the ``django.utils.timesince.timesince`` function of the
-        current timestamp.
-        """
-        from django.utils.timesince import timesince as timesince_
         return timesince_(self.created_at, now)
 
     def save(self, force_insert=False, force_update=False, using=None,

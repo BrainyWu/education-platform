@@ -12,6 +12,7 @@ from lib.response import Response
 from lib.permissions import IsOwnerOrReadOnly, IsAdminUserOrReadOnly
 from lib.utils import get_object
 from organization.serializers import Teacher, CourseOrg
+from notifications.views import notification_handler
 
 
 class AddUserAskViewSet(mixins.CreateModelMixin, viewsets.GenericViewSet):
@@ -37,7 +38,7 @@ class UserCourseViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
 
 class BannerViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
     serializer_class = BannerSerializer
-    permission_classes = (IsAdminUserOrReadOnly, )  # 只允许管理员创建,更新和删除
+    permission_classes = (IsAdminUserOrReadOnly,)  # 只允许管理员创建,更新和删除
 
     def get_queryset(self):
         return Banner.objects.all().order_by('index')
@@ -92,5 +93,8 @@ class AddFavViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets.
             # 记录不存在， 则表示用户收藏, fav_nums加一
             user_fav = UserFavorite()
             user_fav.create(user=request.user, fav_id=int(fav_id), fav_type=int(fav_type))
+            # 点赞课程才通知
+            if int(fav_type) == 1:
+                notification_handler(self.request.user, obj.user, 'L', obj)
             obj.modify_fav_nums(incr=True)
             return Response(status=status.HTTP_201_CREATED)
