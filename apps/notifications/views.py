@@ -3,16 +3,16 @@
 # __author__ = 'wuhai'
 
 from django.contrib import messages
-from django.shortcuts import get_object_or_404, redirect, render
+from django.contrib.auth.models import Group
+from django.db.models.query import QuerySet
 from rest_framework import mixins, viewsets, filters, status
-from rest_framework.permissions import IsAuthenticated, AllowAny
-from rest_framework.decorators import api_view, permission_classes
 
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
 
 from .models import Notification
 from .serializers import NotificationSerializer
+from .consumers import NotificationsConsumer
 
 
 class NotificationUnreadView(mixins.ListModelMixin, viewsets.GenericViewSet):
@@ -23,7 +23,7 @@ class NotificationUnreadView(mixins.ListModelMixin, viewsets.GenericViewSet):
         return self.request.user.notifications.unread()
 
 
-def notification_handler(actor, recipient, verb, action_object, **kwargs):
+def notification_handler(actor=None, recipient=None, verb=None, action_object=None, **kwargs):
     """
     通知处理器
     :param actor:           request.user对象
@@ -33,23 +33,37 @@ def notification_handler(actor, recipient, verb, action_object, **kwargs):
     :param kwargs:          key, id_value等
     :return:                None
     """
-    if actor.username != recipient.username and recipient.username == action_object.user.username:
-        # 只通知接收者，即recipient == 动作对象的作者
-        key = kwargs.get('key', 'notification')
-        id_value = kwargs.get('id_value', None)
-        # 记录通知内容
-        Notification.objects.create(
+    key = kwargs.pop('key', 'notification')
+    id_value = kwargs.pop('id_value', None)
+    slug = kwargs.pop('slug', None)
+
+    if isinstance(recipient, Group):
+        recipients = recipient.user_set.all()
+    elif isinstance(recipient, (QuerySet, list)):
+        recipients = recipient
+    # request.user == recipient或recipient为空不通知
+    elif actor == recipient or not recipient:
+        return
+    else:
+        recipients = [recipient]
+
+    for recipient in recipients:
+        newnotify = Notification.objects.create(
             actor=actor,
             recipient=recipient,
+            slug=slug,
             verb=verb,
             action_object=action_object
         )
+        newnotify.save()
 
         channel_layer = get_channel_layer()
         payload = {
             'type': 'receive',
             'key': key,
             'actor_name': actor.username,
-            'id_value': id_value
+            'id_value': id_value,
+            'msg': newnotify.__str__(),
         }
-        async_to_sync(channel_layer.group_send)('notifications', payload)
+        async_to_sync(channel_layer.send)("notifications", payload)
+

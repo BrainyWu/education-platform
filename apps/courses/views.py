@@ -1,7 +1,12 @@
 # -*- coding: utf-8 -*-
+import json
+from collections import OrderedDict
+
 from django_filters.rest_framework import DjangoFilterBackend
 from django.contrib.auth import get_user_model
+from django_redis import get_redis_connection
 from rest_framework_extensions.cache.mixins import CacheResponseMixin
+from rest_framework_extensions.key_constructor.constructors import DefaultListKeyConstructor, DefaultObjectKeyConstructor
 from rest_framework_extensions.cache.decorators import cache_response
 from rest_framework.authentication import SessionAuthentication, BasicAuthentication
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
@@ -14,9 +19,11 @@ from .serializers import CourseSerializer, LessonSerializer, CourseResourceSeria
 from notifications.views import notification_handler
 from operation.models import UserFavorite, CourseComment
 from operation.serializers import CourseCommentSerializer
+from lib.permissions import IsOwnerOrReadOnly, IsOwnerOrReadOnlyForCourse
 from lib.utils import BasePagination, get_object
 from lib.response import Response
-from lib.permissions import IsOwnerOrReadOnly, IsOwnerOrReadOnlyForCourse
+from notifications.views import notification_handler
+
 
 User = get_user_model()
 
@@ -66,16 +73,18 @@ class CourseViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
         return Course.objects.all().select_related('org', 'user', 'teacher')
 
     def perform_create(self, serializer):
-        serializer.save()
-        # 创建成功，消息通知管理员
-        notification_handler(self.request.user, User.objects.filter(is_staff=1).first(), 'B', self.request)
+        obj = serializer.save()
+        # 课程创建成功,通知其他用户
+        others_user = User.objects.all().exclude(pk=self.request.user.id)
+        notification_handler(actor=self.request.user, recipient=others_user, verb='B', action_object=obj)
 
+    # @cache_response(cache='cache1', key_func=DefaultListKeyConstructor())
     def list(self, request, *args, **kwargs):
         courses = self.filter_queryset(self.get_queryset())
-        courses_serializer = self.get_custom_serializer(courses)
+        serializer = self.get_custom_serializer(courses)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
-        return Response(courses_serializer.data, status=status.HTTP_200_OK)
-
+    # @cache_response(cache='cache1', key_func=DefaultObjectKeyConstructor())
     def retrieve(self, request, *args, **kwargs):
         # 是否收藏课程
         has_fav_course = False
@@ -241,6 +250,12 @@ class CourseCommentViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
             return [IsAuthenticatedOrReadOnly()]
         else:
             return [IsOwnerOrReadOnly()]
+
+    def perform_create(self, serializer):
+        serializer.save()
+        # 有课程评论则推送消息通知课程作者
+        obj = get_object(Course, int(serializer.data['course']))
+        notification_handler(self.request.user, obj.user, 'C', obj)
 
     def get_queryset(self):
         return CourseComment.objects.all().select_related('course')
