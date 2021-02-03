@@ -25,5 +25,5 @@ urlpatterns = [
     # 修改邮箱
     url(r'^useremail/$', ModifyEmailView.as_view({'put': 'update'}), name="update_email"),
     # 发送邮箱验证码
-    url(r'^emailcode/$', send_email_code, name="send_email_code"),
+    url(r'^emailcode/(?P<type>\d+)$', send_email_code, name="send_email_code"),
 ]
