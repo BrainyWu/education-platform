@@ -56,6 +56,7 @@ class CourseOrg(models.Model):
             if self.fav_nums < 0:
                 self.fav_nums = 0
         self.save()
+        return self.fav_nums
 
 
 class Teacher(models.Model):
@@ -91,3 +92,4 @@ class Teacher(models.Model):
             if self.fav_nums < 0:
                 self.fav_nums = 0
         self.save()
+        return self.fav_nums

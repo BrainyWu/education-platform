@@ -71,6 +71,7 @@ class Course(models.Model):
             if self.fav_nums < 0:
                 self.fav_nums = 0
         self.save()
+        return self.fav_nums
 
 
 class BannerCourse(Course):
