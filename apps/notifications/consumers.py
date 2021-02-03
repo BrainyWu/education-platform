@@ -3,10 +3,10 @@
 # __author__ = 'wuhai'
 import json
 
-from channels.generic.websocket import JsonWebsocketConsumer
+from channels.generic.websocket import AsyncJsonWebsocketConsumer, AsyncWebsocketConsumer
 
 
-class NotificationsConsumer(JsonWebsocketConsumer):
+class NotificationsConsumer(AsyncJsonWebsocketConsumer):
     """处理通知应用中的WebSocket请求"""
 
     async def connect(self):

@@ -59,7 +59,7 @@ class Notification(models.Model):
         ('F', '收藏了'),  # favor
         ('R', '回复了'),  # reply
     )
-    uuid_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    uuid = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     actor = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="notify_actor",
                               on_delete=models.CASCADE, verbose_name="触发者")
     recipient = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=False,
@@ -98,7 +98,7 @@ class Notification(models.Model):
     def save(self, force_insert=False, force_update=False, using=None,
              update_fields=None):
         if not self.slug:
-            self.slug = slugify(f'{self.recipient} {self.uuid_id} {self.verb}')
+            self.slug = slugify(f'{self.recipient} {self.uuid} {self.verb}')
         super(Notification, self).save()
 
     def mark_as_read(self):
