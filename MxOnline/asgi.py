@@ -8,6 +8,6 @@ from channels.routing import get_default_application
 app_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(app_path, 'apps'))
 
-os.environ.setdefault("DJANGO_SETTINGS_MODULE", "MxOnline.setting")
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "MxOnline.settings")
 django.setup()
 application = get_default_application()

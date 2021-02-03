@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/1.9/ref/settings/
 """
 import os
 import sys
+import datetime
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -27,6 +28,7 @@ SECRET_KEY = 'i2bjs06=#v_608z^d%qaz=1m9&8wldxwt9r+80^qfbmo-r#@k@'
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
+DJANGO_ALLOWED_HOSTS = ['*']
 AUTH_USER_MODEL = 'users.UserProfile'
 
 INSTALLED_APPS = [
@@ -58,7 +60,6 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
-    # 'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -114,7 +115,7 @@ CACHES = {
     },
     "cache1": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379/1",
+        "LOCATION": "redis://127.0.0.1:6379/2",
         "TIMEOUT": 60 * 30,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
@@ -135,7 +136,6 @@ CHANNEL_LAYERS = {
     },
 }
 
-# SESSION_CACHE_ALIAS = "cache1"
 # REST_FRAMEWORK_EXTENSIONS = {
 #
 # }
@@ -162,6 +162,19 @@ AUTH_PASSWORD_VALIDATORS = [
 AUTHENTICATION_BACKENDS = (
     'users.views.CustomBackend',
 )
+
+# 配置session存储
+SESSION_ENGINE = "redis_sessions.session"
+SESSION_REDIS = {
+    'host': '127.0.0.1',
+    'port': 6379,
+    'db': 1,
+    'password': '',
+    'prefix': 'session',
+    'socket_timeout': 3,
+    # 修改redis-seesion源码添加自定义过期时间
+    'expiry': 60 * 60 * 24
+}
 
 REST_FRAMEWORK = {
     # api接口文档配置
@@ -190,8 +203,6 @@ REST_FRAMEWORK = {
         'user': '30/minute'
     },
 }
-
-import datetime
 
 JWT_AUTH = {
     'JWT_EXPIRATION_DELTA': datetime.timedelta(days=365),
@@ -222,3 +233,49 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+
+# logging setting
+from logging import config as logging_config
+
+LOG_PATH = os.path.join(BASE_DIR, "logs")
+if not os.path.exists(LOG_PATH):
+    os.mkdir(LOG_PATH)
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': True,
+    'formatters': {
+        'standard': {
+            'format': '%(asctime)s - %(module)s - %(funcName)s - %(levelname)s : %(message )s'
+        },
+    },
+    'handlers': {
+        # project info
+        'info': {
+            'level': 'INFO',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(LOG_PATH, 'info.log'),
+            'maxBytes': 1024 * 1024 * 30,
+            'backupCount': 9,
+            'formatter': 'standard',
+            'encoding': 'utf-8',
+        },
+        # project error
+        'error': {
+            'level': 'ERROR',
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': os.path.join(LOG_PATH, 'error.log'),
+            'maxBytes': 1024 * 1024 * 30,
+            'backupCount': 9,
+            'formatter': 'standard',
+            'encoding': 'utf-8',
+        },
+    },
+    'loggers': {
+        'default': {
+            'handlers': ['info', 'error'],
+            'level': 'INFO',
+            'propagate': False
+        },
+    }
+}
+logging_config.dictConfig(LOGGING)
