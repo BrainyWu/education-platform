@@ -11,7 +11,7 @@ from courses.serializers import CourseSerializer
 from lib.response import Response
 from lib.permissions import IsOwnerOrReadOnly, IsAdminUserOrReadOnly
 from lib.utils import get_object
-from organization.serializers import Teacher, CourseOrg
+from organization.serializers import Teacher, CourseOrg, CourseOrgSerializer, TeacherSerializer
 from notifications.views import notification_handler
 
 
@@ -68,13 +68,16 @@ class AddFavViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets.
     def obj_map(self, fav_type=None, fav_id=None):
         if int(fav_type) == 1:
             obj = get_object(Course, object_id=int(fav_id))
+            serializer = CourseSerializer(obj)
         elif int(fav_type) == 2:
             obj = get_object(CourseOrg, object_id=int(fav_id))
+            serializer = CourseOrgSerializer(obj)
         elif int(fav_type) == 3:
             obj = get_object(Teacher, object_id=int(fav_id))
+            serializer = TeacherSerializer(obj)
         else:
             raise ValueError("Fav type incorrect.")
-        return obj
+        return obj, serializer
 
     def create(self, request, *args, **kwargs):
         fav_id = request.data.get('fav_id', None)
@@ -82,7 +85,7 @@ class AddFavViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets.
         if fav_id is None or fav_type is None:
             return Response(code=-1, msg='Fav_id and Fav type are required.', status=status.HTTP_400_BAD_REQUEST)
 
-        obj = self.obj_map(fav_type, fav_id)
+        obj, serializer = self.obj_map(fav_type, fav_id)
         exist_records = UserFavorite.objects.filter(user=request.user, fav_id=int(fav_id), fav_type=int(fav_type))
         if exist_records:
             # 记录已经存在， 则表示用户取消收藏, fav_nums减一
@@ -93,8 +96,8 @@ class AddFavViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets.
             # 记录不存在， 则表示用户收藏, fav_nums加一
             user_fav = UserFavorite()
             user_fav.create(user=request.user, fav_id=int(fav_id), fav_type=int(fav_type))
-            # 点赞课程才通知
+            # 收藏课程才通知
             if int(fav_type) == 1:
                 notification_handler(self.request.user, obj.user, 'L', obj)
             obj.modify_fav_nums(incr=True)
-            return Response(status=status.HTTP_201_CREATED)
+            return Response({'result': serializer.data}, status=status.HTTP_201_CREATED)
