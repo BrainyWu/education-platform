@@ -12,6 +12,10 @@ https://docs.djangoproject.com/en/1.9/ref/settings/
 import os
 import sys
 import datetime
+from logging import config as logging_config
+
+import configparser
+import environ
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -20,6 +24,19 @@ sys.path.insert(0, os.path.join(BASE_DIR, 'extra_apps'))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.9/howto/deployment/checklist/
+CONF_PATH = os.path.join(BASE_DIR, 'conf')
+
+# LOG SETTING
+LOG_PATH = os.path.join(BASE_DIR, "logs")
+if not os.path.exists(LOG_PATH):
+    os.mkdir(LOG_PATH)
+logging_config.fileConfig(os.path.join(CONF_PATH, 'logging.ini'))
+
+# ENV SETTING
+env = environ.Env()
+READ_DOT_ENV_FILE = env.bool('DJANGO_READ_DOT_ENV_FILE', default=True)
+if READ_DOT_ENV_FILE:
+    env.read_env(os.path.join(CONF_PATH, '.env'))
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'i2bjs06=#v_608z^d%qaz=1m9&8wldxwt9r+80^qfbmo-r#@k@'
@@ -31,7 +48,8 @@ ALLOWED_HOSTS = ['*']
 DJANGO_ALLOWED_HOSTS = ['*']
 AUTH_USER_MODEL = 'users.UserProfile'
 
-INSTALLED_APPS = [
+# apps
+DJANGO_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -53,6 +71,25 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework.authtoken',
 ]
+THIRD_PARTY_APPS = [
+    'channels',
+    'crispy_forms',
+    'captcha',
+    'pure_pagination',
+    'DjangoUeditor',
+    'django_filters',
+    'rest_framework',
+    'rest_framework.authtoken',
+]
+LOCAL_APPS = [
+    'users',
+    'courses',
+    'organization',
+    'operation',
+    'notifications',
+    'xadmin',
+]
+INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -205,7 +242,7 @@ REST_FRAMEWORK = {
 }
 
 JWT_AUTH = {
-    'JWT_EXPIRATION_DELTA': datetime.timedelta(days=365),
+    'JWT_EXPIRATION_DELTA': datetime.timedelta(days=7),
     'JWT_AUTH_HEADER_PREFIX': 'JWT',
 }
 
@@ -213,13 +250,9 @@ JWT_AUTH = {
 # https://docs.djangoproject.com/en/1.9/topics/i18n/
 
 LANGUAGE_CODE = 'zh-hans'
-
 TIME_ZONE = 'Asia/Shanghai'
-
 USE_I18N = True
-
 USE_L10N = True
-
 USE_TZ = False
 
 EMAIL_HOST = "smtp.sina.com"
