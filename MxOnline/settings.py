@@ -42,11 +42,12 @@ if READ_DOT_ENV_FILE:
 SECRET_KEY = 'i2bjs06=#v_608z^d%qaz=1m9&8wldxwt9r+80^qfbmo-r#@k@'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env.bool('DJANGO_DEBUG', False)
 
-ALLOWED_HOSTS = ['*']
-DJANGO_ALLOWED_HOSTS = ['*']
+# https://docs.djangoproject.com/en/dev/ref/settings/#allowed-hosts
+ALLOWED_HOSTS = env.list('DJANGO_ALLOWED_HOSTS')
 AUTH_USER_MODEL = 'users.UserProfile'
+ROOT_URLCONF = 'MxOnline.urls'
 
 # apps
 DJANGO_APPS = [
@@ -56,20 +57,6 @@ DJANGO_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'channels',
-    'users',
-    'courses',
-    'organization',
-    'operation',
-    'notifications',
-    'xadmin',
-    'crispy_forms',
-    'captcha',
-    'pure_pagination',
-    'DjangoUeditor',
-    'django_filters',
-    'rest_framework',
-    'rest_framework.authtoken',
 ]
 THIRD_PARTY_APPS = [
     'channels',
@@ -101,8 +88,6 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'MxOnline.urls'
-
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -129,34 +114,34 @@ WSGI_APPLICATION = 'MxOnline.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': "project_education",
-        'USER': 'root',
-        'PASSWORD': "root",
-        'HOST': "127.0.0.1",
-        'CONN_MAX_AGE': 60,  # 数据库持久连接
+        'ENGINE': env('MYSQL_DB_ENGINE', default=env.DB_SCHEMES.get('mysql')),
+        'NAME': env('MYSQL_DB_NAME', default='project_education'),
+        'USER': env('MYSQL_DB_USER'),
+        'PASSWORD': env('MYSQL_DB_PASSWORD'),
+        'HOST': env('MYSQL_DB_HOST'),
+        'CONN_MAX_AGE': env('MYSQL_DB_CONN_MAX_AGE', default=100),
     }
 }
 
 # 缓存
 CACHES = {
     "default": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379/0",  # DB设为0
-        "TIMEOUT": 300,  # 永久缓存，默认300秒
+        "BACKEND": env.CACHE_SCHEMES.get('rediscache'),
+        "LOCATION": env('DEFAULT_CACHE_LOCATION'),
+        "TIMEOUT": env('DEFAULT_CACHE_TIMEOUT', default=300),
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "CONNECTION_POOL_KWARGS": {"max_connections": 100}
+            "CONNECTION_POOL_KWARGS": {"max_connections": env('DEFAULT_CACHE_MAX_CONNECTIONS', default=100)}
             # "PASSWORD":"xxxxxx" # 可能需要密码
         }
     },
     "cache1": {
-        "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379/2",
-        "TIMEOUT": 60 * 30,
+        "BACKEND": env.CACHE_SCHEMES.get('rediscache'),
+        "LOCATION": env('CACHEONE_LOCATION'),
+        "TIMEOUT": env('CACHEONE_TIMEOUT', default=1800),
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "CONNECTION_POOL_KWARGS": {"max_connections": 100}
+            "CONNECTION_POOL_KWARGS": {"max_connections": env('CACHEONE_MAX_CONNECTIONS', default=100)}
         }
     },
 }
@@ -168,7 +153,7 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": ["redis://127.0.0.1:6379/3"],  # channel layers缓存使用Redis 3
+            "hosts": env.list('CL_CACHE_HOSTS'),
         },
     },
 }
@@ -201,16 +186,17 @@ AUTHENTICATION_BACKENDS = (
 )
 
 # 配置session存储
-SESSION_ENGINE = "redis_sessions.session"
+SESSION_ENGINE = env('SESSION_ENGINE')
+SESSION_COOKIE_NAME = "SID"
 SESSION_REDIS = {
-    'host': '127.0.0.1',
-    'port': 6379,
-    'db': 1,
-    'password': '',
-    'prefix': 'session',
-    'socket_timeout': 3,
+    'host': env('SESSION_HOST'),
+    'port': env('SESSION_PORT', default=6379),
+    'db': env('SESSION_DB', default=1),
+    'password': env('SESSION_PASSWORD'),
+    'prefix': env('SESSION_PREFIX', default='session'),
+    'socket_timeout': env('SESSION_SOCKET_TIMEOUT', default=1),
     # 修改redis-seesion源码添加自定义过期时间
-    'expiry': 60 * 60 * 24
+    'expiry': env('SESSION_EXPIRY', default=60 * 60 * 24)
 }
 
 REST_FRAMEWORK = {
@@ -255,12 +241,16 @@ USE_I18N = True
 USE_L10N = True
 USE_TZ = False
 
-EMAIL_HOST = "smtp.sina.com"
-EMAIL_PORT = 25
-EMAIL_HOST_USER = "projectsedu@sina.com"
-EMAIL_HOST_PASSWORD = "admin123"
-EMAIL_USE_TLS = False
-EMAIL_FROM = "projectsedu@sina.com"
+# https://docs.djangoproject.com/en/dev/ref/settings/#email-backend
+EMAIL_BACKEND = env('EMAIL_BACKEND', default=env.EMAIL_SCHEMES.get('smtp'))
+# https://docs.djangoproject.com/en/dev/ref/settings/#email-host
+EMAIL_HOST = env('EMAIL_HOST')
+# https://docs.djangoproject.com/en/dev/ref/settings/#email-port
+EMAIL_USE_SSL = env('EMAIL_USE_SSL', default=True)
+EMAIL_PORT = env('EMAIL_PORT', default=25)
+EMAIL_HOST_USER = env('EMAIL_HOST_USER')
+EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL')
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
