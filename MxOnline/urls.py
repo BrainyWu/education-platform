@@ -43,9 +43,9 @@ urlpatterns = [
     # 用户相关url配置
     url(r'^users/', include(('users.urls', 'users'), namespace="users")),
     # 课程相关url
-    url(r'^course/', include(('courses.urls', 'courses'), namespace="course")),
+    url(r'^courses/', include(('courses.urls', 'courses'), namespace="course")),
     # 课程机构url
-    url(r'^organization/', include(('organization.urls', 'organization'), namespace="organization")),
+    url(r'^organizations/', include(('organization.urls', 'organization'), namespace="organization")),
     # 操作相关url配置
     url(r'^operation/', include(('operation.urls', 'operation'), namespace="operation")),
     # 消息通知

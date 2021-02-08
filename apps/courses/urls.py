@@ -10,9 +10,9 @@ router = DefaultRouter()
 
 router.register(r'course', views.CourseViewSet, basename="courses")
 router.register(r'resource', views.CourseResourceViewSet, basename="resource")
-router.register(r'comment', views.CourseCommentViewSet, basename="comment")
-router.register(r'lesson', views.LessonViewSet, basename="lesson")
-router.register(r'video', views.VideoViewSet, basename="video")
+router.register(r'(?P<course_id>\d+)/comment', views.CourseCommentViewSet, basename="comment")
+router.register(r'(?P<course_id>\d+)/lesson', views.LessonViewSet, basename="lesson")
+router.register(r'(?P<course_id>\d+)/video', views.VideoViewSet, basename="video")
 
 urlpatterns = [
     url(r'^', include(router.urls)),

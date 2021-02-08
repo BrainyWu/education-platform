@@ -131,7 +131,9 @@ CACHES = {
         "TIMEOUT": env('DEFAULT_CACHE_TIMEOUT', default=300),
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "CONNECTION_POOL_KWARGS": {"max_connections": env('DEFAULT_CACHE_MAX_CONNECTIONS', default=100)}
+            "CONNECTION_POOL_KWARGS": {
+                "max_connections": env('DEFAULT_CACHE_MAX_CONNECTIONS', default=100),
+            }
             # "PASSWORD":"xxxxxx" # 可能需要密码
         }
     },
@@ -141,7 +143,11 @@ CACHES = {
         "TIMEOUT": env('CACHEONE_TIMEOUT', default=1800),
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "CONNECTION_POOL_KWARGS": {"max_connections": env('CACHEONE_MAX_CONNECTIONS', default=100)}
+            "CONNECTION_POOL_KWARGS": {
+                "max_connections": env('CACHEONE_MAX_CONNECTIONS', default=100),
+                # 避免转码，直接对原数据进行操作, 默认False
+                "decode_responses": True,
+            }
         }
     },
 }

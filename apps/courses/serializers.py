@@ -1,17 +1,31 @@
 # -*- coding: utf-8 -*-
 __author__ = 'wuhai'
+import json
+
 from django.db.models import Q
 from django.contrib.auth import get_user_model
+from django.core.serializers import serialize
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
 from .models import Course, CourseResource, Lesson, Video
 from organization.serializers import CourseOrgSerializer
+from lib.typetools import JsonEncoder
 
 User = get_user_model()
 
 
-class CourseResourceSerializer(serializers.ModelSerializer):
+# 自定义ModelSerializer，便于拓展
+class CustomModelSerializer(serializers.ModelSerializer):
+
+    @property
+    def null_serializer(self):
+        # 构建空序列化对象，不返回write_only=True的字段
+        fields = self.get_fields()
+        return {field: 'null' for field, f_type in fields.items() if not f_type.write_only}
+
+
+class CourseResourceSerializer(CustomModelSerializer):
     user = serializers.CharField(read_only=True)
 
     class Meta:
@@ -24,13 +38,13 @@ class CourseResourceSerializer(serializers.ModelSerializer):
         return attrs
 
 
-class VideoSerializer(serializers.ModelSerializer):
+class VideoSerializer(CustomModelSerializer):
     class Meta:
         model = Video
         fields = "__all__"
 
 
-class LessonSerializer(serializers.ModelSerializer):
+class LessonSerializer(CustomModelSerializer):
     videos = serializers.SerializerMethodField(read_only=True)
     video = VideoSerializer(write_only=True, default=[], many=True)
 
@@ -50,7 +64,7 @@ class LessonSerializer(serializers.ModelSerializer):
         return lesson
 
 
-class CourseSerializer(serializers.ModelSerializer):
+class CourseSerializer(CustomModelSerializer):
     name = serializers.CharField(max_length=50, allow_null=True, validators=[
                                  UniqueValidator(queryset=Course.objects.all(), message="课程名已存在")])
     user = serializers.CharField(read_only=True)
