@@ -3,6 +3,7 @@ from datetime import datetime
 
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.core.serializers import serialize
 
 from DjangoUeditor.models import UEditorField
 from organization.models import CourseOrg, Teacher
@@ -60,8 +61,9 @@ class Course(models.Model):
         return [obj.user.username for obj in self.usercourse_set.all()][:10]
 
     def get_lessons(self):
-        # 获取课程所有章节和视频
-        return [{'name': obj.name, 'videos': obj.get_videos()} for obj in self.lesson_set.all()]
+        # 获取课程所有章节
+        return [{'id': obj.id, 'name': obj.name, 'videos': obj.get_videos()}
+                for obj in self.lesson_set.all()]
 
     def modify_fav_nums(self, incr=True):
         if incr:
@@ -99,19 +101,30 @@ class Lesson(models.Model):
         return self.name
 
     def get_videos(self):
-        # 获取章节视频
-        # return self.video_set.all()
-        return [{'name': obj.name, 'learn_times': obj.learn_times, 'url': obj.url, 'created_time': obj.created_time}
-                for obj in self.video_set.all()]
+        # 章节视频
+        return serialize('json', self.video_set.all())
+        # return [{'name': obj.name, 'learn_times': obj.learn_times, 'url': obj.url, 'created_time': obj.created_time}
+        #         for obj in self.video_set.all()]
+
+
+class VideoQuerySet(models.query.QuerySet):
+
+    def get_course_videos(self, cid=None):
+        return self.filter(course=cid)
+
+    def get_lesson_videos(self, lid=None):
+        return self.filter(lesson=lid)
 
 
 class Video(models.Model):
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, verbose_name="课程")
     lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, verbose_name="章节")
     name = models.CharField(max_length=100, verbose_name="视频名")
     learn_times = models.IntegerField(default=0, verbose_name="学习时长(分钟数)")
     url = models.CharField(max_length=200, null=False, blank=False, verbose_name="访问地址")
     created_time = models.DateTimeField(db_index=True, auto_now_add=True, verbose_name="创建时间")
     updated_time = models.DateTimeField(auto_now=True, verbose_name="更新时间")
+    objects = VideoQuerySet.as_manager()
 
     class Meta:
         db_table = 'lesson_video'

@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 import json
+import logging
 from collections import OrderedDict
 
 from django_filters.rest_framework import DjangoFilterBackend
 from django.contrib.auth import get_user_model
 from django_redis import get_redis_connection
 from rest_framework_extensions.cache.mixins import CacheResponseMixin
-from rest_framework_extensions.key_constructor.constructors import DefaultListKeyConstructor, DefaultObjectKeyConstructor
+from rest_framework_extensions.key_constructor.constructors import DefaultListKeyConstructor, \
+    DefaultObjectKeyConstructor
 from rest_framework_extensions.cache.decorators import cache_response
 from rest_framework.authentication import SessionAuthentication, BasicAuthentication
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
@@ -24,8 +26,8 @@ from lib.utils import BasePagination, get_object
 from lib.response import Response
 from notifications.views import notification_handler
 
-
 User = get_user_model()
+logger = logging.getLogger()
 
 
 class CourseViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
@@ -84,7 +86,20 @@ class CourseViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
         serializer = self.get_custom_serializer(courses)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    # @cache_response(cache='cache1', key_func=DefaultObjectKeyConstructor())
+    @action(methods=['GET'], detail=True, url_path='rel', url_name='relate_coures')  # detail表示是否单一资源
+    def get_relate_coures(self, request, *args, **kwargs):
+        course = self.get_object()
+        # 查询tag关联除自身之外的课程
+        rel_coures = Course.objects.filter(tag=course.tag).exclude(id=course.id)
+        serializer = self.get_custom_serializer(rel_coures)
+        return Response({'rel_courses': serializer.data}, status=status.HTTP_200_OK)
+
+    def get_object(self):
+        obj = Course.objects.filter(id=self.kwargs.get('id')).first()
+        if obj:
+            self.check_object_permissions(self.request, obj)  # 单一资源检查删改权限
+        return obj
+
     def retrieve(self, request, *args, **kwargs):
         # 是否收藏课程
         has_fav_course = False
@@ -101,15 +116,9 @@ class CourseViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
 
         course.click_nums += 1
         course.save()
-
-        # 查询tag关联除自身之外的课程
-        rel_coures = Course.objects.filter(tag=course.tag).exclude(id=course.id)
-        rel_coures_serializer = self.get_custom_serializer(rel_coures)
         course_serializer = self.get_serializer(course)
-
         return Response({
             'course': course_serializer.data,
-            'related_coures': rel_coures_serializer.data,
             'has_fav_course': has_fav_course,
             'has_fav_org': has_fav_org
         }, status=status.HTTP_200_OK)
@@ -170,6 +179,7 @@ class LessonViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
     filter_fields = ("name",)
     search_fields = ("name",)
     ordering_fields = ("created_time",)
+    lookup_field = 'id'
 
     def get_permissions(self):
         if self.action not in ["update", "destroy"]:
@@ -178,17 +188,45 @@ class LessonViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
             return [IsOwnerOrReadOnlyForCourse()]
 
     def get_queryset(self):
-        return Lesson.objects.all().select_related('course')
+        return Lesson.objects.filter(course=self.kwargs.get('course_id')).select_related('course')
+
+    def get_object(self):
+        obj = Lesson.objects.filter(id=self.kwargs.get('id')).first()
+        if obj:
+            self.check_object_permissions(self.request, obj)
+        return obj
+
+    def retrieve(self, request, *args, **kwargs):
+        lesson_id = self.kwargs.get('id')
+        if lesson_id is None:
+            return Response(code=-1, msg="lesson_id is required params.", status=status.HTTP_400_BAD_REQUEST)
+        conn = get_redis_connection('cache1')
+        cache_key = ':'.join(('lessons', lesson_id))
+        cache_obj = conn.hgetall(cache_key)
+        # 缓存存在则直接返回
+        if cache_obj:
+            return Response(cache_obj)
+        # 缓存不存在则数据库中查找，数据库中有则返回，没有则设置一个空对象并设置过期时间防止穿透
+        else:
+            instance = self.get_object()
+            if instance:
+                serializer = self.get_serializer(instance)
+                conn.hset(name=cache_key, mapping=serializer.data)
+                return Response(serializer.data)
+            else:
+                # 组装一个空对象字典返回并设置60s过期
+                cache_obj = getattr(self.serializer_class(), 'null_serializer')
+                conn.hmset(cache_key, mapping=cache_obj)
+                conn.expire(cache_key, 60)
+                return Response(cache_obj)
 
     def list(self, request, *args, **kwargs):
-        course_id = request.query_params.get('course_id', None)
+        # 限制只获取某一个课程的章节
+        course_id = self.kwargs.get('course_id')
 
-        if course_id:
-            lessons = Lesson.objects.filter(course=int(course_id))
-            lessons_serializer = LessonSerializer(lessons, many=True)
-            return Response(lessons_serializer.data, status=status.HTTP_200_OK)
-        else:
-            return super(LessonViewSet, self).list(request, *args, **kwargs)
+        lessons = Lesson.objects.filter(course=int(course_id))
+        lessons_serializer = LessonSerializer(lessons, many=True)
+        return Response(lessons_serializer.data, status=status.HTTP_200_OK)
 
 
 class VideoViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
@@ -205,9 +243,10 @@ class VideoViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
     """
     serializer_class = VideoSerializer
     pagination_class = BasePagination
-    filter_fields = ("name", )
+    filter_fields = ("name",)
     search_fields = ("name",)
     ordering_fields = ("created_time",)
+    lookup_field = 'id'
 
     def get_permissions(self):
         if self.action not in ["update", "destroy"]:
@@ -219,15 +258,43 @@ class VideoViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
         return Video.objects.all().select_related('lesson')
 
     def list(self, request, *args, **kwargs):
-        lesson_id = request.query_params.get('lesson_id', None)
+        course_id = self.kwargs.get('course_id')
+        lesson_id = self.request.query_params.get('lesson_id')
 
+        videos = Video.objects.get_course_videos(course_id)
         if lesson_id:
-            videos = Video.objects.filter(lesson=int(lesson_id))
-            video_serializer = self.get_serializer(videos, many=True)
+            # 获取指定章节视频
+            videos = videos.get_lesson_videos(lesson_id)
+        video_serializer = self.get_serializer(videos, many=True)
+        return Response(video_serializer.data, status=status.HTTP_200_OK)
 
-            return Response(video_serializer.data, status=status.HTTP_200_OK)
+    def get_object(self):
+        obj = Video.objects.filter(id=self.kwargs.get('id')).first()
+        if obj:
+            self.check_object_permissions(self.request, obj)
+        return obj
+
+    def retrieve(self, request, *args, **kwargs):
+        video_id = self.kwargs.get('id')
+
+        if video_id is None:
+            return Response(code=-1, msg="video_id is required params.", status=status.HTTP_400_BAD_REQUEST)
+        conn = get_redis_connection('cache1')
+        cache_key = ':'.join(('videos', video_id))
+        cache_obj = conn.hgetall(cache_key)
+        if cache_obj:
+            return Response(cache_obj)
         else:
-            return super(VideoViewSet, self).list(request, *args, **kwargs)
+            instance = self.get_object()
+            if instance:
+                serializer = self.get_serializer(instance)
+                conn.hset(name=cache_key, mapping=serializer.data)
+                return Response(serializer.data)
+            else:
+                cache_obj = getattr(self.serializer_class(), 'null_serializer')
+                conn.hmset(cache_key, mapping=cache_obj)
+                conn.expire(cache_key, 60)
+                return Response(cache_obj)
 
 
 class CourseCommentViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
@@ -258,15 +325,11 @@ class CourseCommentViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
         notification_handler(self.request.user, obj.user, 'C', obj)
 
     def get_queryset(self):
-        return CourseComment.objects.all().select_related('course')
+        return CourseComment.objects.filter(course=self.kwargs.get('course_id')).select_related('course')
 
     def list(self, request, *args, **kwargs):
-        course_id = request.query_params.get('course_id', None)
+        course_id = self.kwargs.get('course_id')
 
-        if course_id:
-            course_comment = CourseComment.objects.filter(course=int(course_id)).order_by("created_time")
-            course_comment_serializer = self.get_serializer(course_comment, many=True)
-
-            return Response(course_comment_serializer.data, status=status.HTTP_200_OK)
-        else:
-            return super(CourseCommentViewSet, self).list(request, *args, **kwargs)
+        course_comment = CourseComment.objects.filter(course=int(course_id)).order_by("created_time")
+        course_comment_serializer = self.get_serializer(course_comment, many=True)
+        return Response(course_comment_serializer.data, status=status.HTTP_200_OK)
