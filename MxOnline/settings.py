@@ -45,7 +45,6 @@ SECRET_KEY = 'i2bjs06=#v_608z^d%qaz=1m9&8wldxwt9r+80^qfbmo-r#@k@'
 DEBUG = True
 
 ALLOWED_HOSTS = ['*']
-DJANGO_ALLOWED_HOSTS = ['*']
 AUTH_USER_MODEL = 'users.UserProfile'
 
 # apps
@@ -128,21 +127,22 @@ DATABASES = {
 CACHES = {
     "default": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379/0",  # DB设为0
+        "LOCATION": "redis://192.168.88.88/0",  # DB设为0
         "TIMEOUT": 300,  # 永久缓存，默认300秒
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "CONNECTION_POOL_KWARGS": {"max_connections": 100}
-            # "PASSWORD":"xxxxxx" # 可能需要密码
+            "CONNECTION_POOL_KWARGS": {"max_connections": 100},
+            "PASSWORD": 123456  # 可能需要密码
         }
     },
     "cache1": {
         "BACKEND": "django_redis.cache.RedisCache",
-        "LOCATION": "redis://127.0.0.1:6379/2",
+        "LOCATION": "redis://192.168.88.88:6379/2",
         "TIMEOUT": 60 * 30,
         "OPTIONS": {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
-            "CONNECTION_POOL_KWARGS": {"max_connections": 100}
+            "CONNECTION_POOL_KWARGS": {"max_connections": 100},
+            "PASSWORD": 123456
         }
     },
 }
@@ -154,7 +154,7 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": ["redis://127.0.0.1:6379/3"],  # channel layers缓存使用Redis 3
+            "hosts": ["redis://192.168.88.88:6379/3"],  # channel layers缓存使用Redis 3
         },
     },
 }
@@ -189,10 +189,10 @@ AUTHENTICATION_BACKENDS = (
 # 配置session存储
 SESSION_ENGINE = "redis_sessions.session"
 SESSION_REDIS = {
-    'host': '127.0.0.1',
+    'host': '192.168.88.88',
     'port': 6379,
     'db': 1,
-    'password': '',
+    'password': 123456,
     'prefix': 'session',
     'socket_timeout': 3,
     # 修改redis-seesion源码添加自定义过期时间
