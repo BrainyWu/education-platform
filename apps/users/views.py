@@ -44,7 +44,9 @@ class UserView(mixins.CreateModelMixin, mixins.RetrieveModelMixin, mixins.Update
     authentication_classes = (JSONWebTokenAuthentication, authentication.SessionAuthentication)
 
     def get_object(self):
-        return get_object(User, self.request.user.id)
+        obj = get_object(User, self.request.user.id)
+        self.check_object_permissions(self.request, obj)  # 单一资源检查权限
+        return obj
 
     def perform_create(self, serializer):
         # 返回user
@@ -84,7 +86,9 @@ class ModifyPwdView(mixins.UpdateModelMixin, viewsets.GenericViewSet):
     permission_classes = (IsAuthenticated,)
 
     def get_object(self):
-        return get_object(User, self.request.user.id)
+        obj = get_object(User, self.request.user.id)
+        self.check_object_permissions(self.request, obj)
+        return obj
 
 
 class ResetPwdView(mixins.UpdateModelMixin, viewsets.GenericViewSet):
@@ -94,8 +98,9 @@ class ResetPwdView(mixins.UpdateModelMixin, viewsets.GenericViewSet):
     serializer_class = ResetPwdSerializer
 
     def get_object(self):
-        return get_object(User, username=self.request.data['username'],
-                          email=self.request.data['email'])
+        obj = get_object(User, username=self.request.data['username'], email=self.request.data['email'])
+        self.check_object_permissions(self.request, obj)
+        return obj
 
 
 class ModifyEmailView(mixins.UpdateModelMixin, viewsets.GenericViewSet):
@@ -106,7 +111,9 @@ class ModifyEmailView(mixins.UpdateModelMixin, viewsets.GenericViewSet):
     permission_classes = (IsAuthenticated,)
 
     def get_object(self):
-        return get_object(User, self.request.user.id)
+        obj = get_object(User, self.request.user.id)
+        self.check_object_permissions(self.request, obj)
+        return obj
 
 
 class UserCourseView(mixins.ListModelMixin, viewsets.GenericViewSet):
@@ -197,7 +204,7 @@ def send_email_code(request, send_type, *args, **kwargs):
             return Response(code=-1, msg="User not logged in.", status=status.HTTP_401_UNAUTHORIZED)
         email = request.user.email
     elif int(send_type) == 2:
-        username = request.data.get('username') or request.query_params.get('username')
+        username = request.data.get('username') or request.query_params.get('username') or request.user.username
         if not username:
             return Response(code=-1, msg="username is a required params.", status=status.HTTP_400_BAD_REQUEST)
         if not User.objects.filter(username=username, email=email):
