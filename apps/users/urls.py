@@ -9,11 +9,11 @@ from .views import *
 router = DefaultRouter()
 
 router.register(r'user', UserView, basename="user")
-router.register(r'usercourse', UserFavOrgView, basename="user_course")
-router.register(r'userfav/org', UserFavOrgView, basename="userfav_org")
-router.register(r'userfav/teacher', UserFavTeacherView, basename="userfav_teacher")
-router.register(r'userfav/course', UserFavOrgView, basename="userfav_course")
-router.register(r'usermessages', UserFavOrgView, basename="user_messages")
+router.register(r'courses', UserCourseView, basename="user_course")
+router.register(r'fav/org', UserFavOrgView, basename="userfav_org")
+router.register(r'fav/teacher', UserFavTeacherView, basename="userfav_teacher")
+router.register(r'fav/course', UserFavCourseView, basename="userfav_course")
+router.register(r'messages', UserMessageView, basename="user_messages")
 
 
 urlpatterns = [
