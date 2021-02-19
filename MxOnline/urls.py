@@ -41,15 +41,15 @@ urlpatterns = [
     url(r'^captcha/', include('captcha.urls')),
 
     # 用户相关url配置
-    url(r'^users/', include(('users.urls', 'users'), namespace="users")),
+    url(r'^u/', include(('users.urls', 'users'), namespace="user")),
     # 课程相关url
-    url(r'^courses/', include(('courses.urls', 'courses'), namespace="course")),
+    url(r'^learn/', include(('courses.urls', 'courses'), namespace="learn")),
     # 课程机构url
-    url(r'^organizations/', include(('organization.urls', 'organization'), namespace="organization")),
+    url(r'^org/', include(('organization.urls', 'organization'), namespace="organization")),
     # 操作相关url配置
-    url(r'^operation/', include(('operation.urls', 'operation'), namespace="operation")),
+    url(r'^ope/', include(('operation.urls', 'operation'), namespace="operation")),
     # 消息通知
-    url(r'^notification/', include(('notifications.urls', 'notification'), namespace="notification")),
+    url(r'^notifications/', include(('notifications.urls', 'notification'), namespace="notifications")),
 
     # 配置上传文件的访问处理函数
     url(r'^media/(?P<path>.*)$', serve, {"document_root": MEDIA_ROOT}),

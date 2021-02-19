@@ -11,6 +11,7 @@ from courses.serializers import CourseSerializer
 from lib.response import Response
 from lib.permissions import IsOwnerOrReadOnly, IsAdminUserOrReadOnly
 from lib.utils import get_object
+from lib.exceptions import ValidationError
 from organization.serializers import Teacher, CourseOrg, CourseOrgSerializer, TeacherSerializer
 from notifications.views import notification_handler
 
@@ -76,14 +77,15 @@ class AddFavViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets.
             obj = get_object(Teacher, object_id=int(fav_id))
             serializer = TeacherSerializer(obj)
         else:
-            raise ValueError("Fav type incorrect.")
+            raise ValidationError("Fav type incorrect.")
         return obj, serializer
 
     def create(self, request, *args, **kwargs):
-        fav_id = request.data.get('fav_id', None)
-        fav_type = request.data.get('fav_type', None)
-        if fav_id is None or fav_type is None:
-            return Response(code=-1, msg='Fav_id and Fav type are required.', status=status.HTTP_400_BAD_REQUEST)
+        fav_id = request.data.get('fav_id', -1)
+        fav_type = request.data.get('fav_type', -1)
+
+        if int(fav_id) < 0 or int(fav_type) < 0:
+            return Response(code=-1, msg='Fav id or Fav type is invalid.', status=status.HTTP_400_BAD_REQUEST)
 
         obj, serializer = self.obj_map(fav_type, fav_id)
         exist_records = UserFavorite.objects.filter(user=request.user, fav_id=int(fav_id), fav_type=int(fav_type))

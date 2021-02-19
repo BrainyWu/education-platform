@@ -10,19 +10,10 @@ from rest_framework.validators import UniqueValidator
 
 from .models import Course, CourseResource, Lesson, Video
 from organization.serializers import CourseOrgSerializer
+from lib.redisextend import CustomModelSerializer
 from lib.typetools import JsonEncoder
 
 User = get_user_model()
-
-
-# 自定义ModelSerializer，便于拓展
-class CustomModelSerializer(serializers.ModelSerializer):
-
-    @property
-    def null_serializer(self):
-        # 构建空序列化对象，不返回write_only=True的字段
-        fields = self.get_fields()
-        return {field: 'null' for field, f_type in fields.items() if not f_type.write_only}
 
 
 class CourseResourceSerializer(CustomModelSerializer):

@@ -4,16 +4,16 @@ from django.conf.urls import url, include
 from rest_framework import permissions
 from rest_framework.routers import DefaultRouter
 
-from . import views
+from .views import *
 
 router = DefaultRouter()
 
-router.register(r'course', views.CourseViewSet, basename="courses")
-router.register(r'resource', views.CourseResourceViewSet, basename="resource")
-router.register(r'(?P<course_id>\d+)/comment', views.CourseCommentViewSet, basename="comment")
-router.register(r'(?P<course_id>\d+)/lesson', views.LessonViewSet, basename="lesson")
-router.register(r'(?P<course_id>\d+)/video', views.VideoViewSet, basename="video")
+router.register(r'course', CourseViewSet, basename="courses")
+router.register(r'resource', CourseResourceViewSet, basename="resource")
+router.register(r'(?P<course_id>\d+)/comment', CourseCommentViewSet, basename="comment")
+router.register(r'(?P<course_id>\d+)/lessons', LessonViewSet, basename="lesson")
+router.register(r'(?P<course_id>\d+)/videos', VideoViewSet, basename="video")
 
 urlpatterns = [
-    url(r'^', include(router.urls)),
+    url(r'^', include(router.urls))
 ]

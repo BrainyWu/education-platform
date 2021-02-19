@@ -25,12 +25,18 @@ from lib.permissions import IsOwnerOrReadOnly, IsOwnerOrReadOnlyForCourse
 from lib.utils import BasePagination, get_object
 from lib.response import Response
 from notifications.views import notification_handler
+from lib.redisextend import CustomModelViewSet
+from lib.exceptions import ValidationError
 
 User = get_user_model()
 logger = logging.getLogger()
 
 
-class CourseViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
+class CourseModelViewSet(CustomModelViewSet):
+    conn = get_redis_connection('cache1')
+
+
+class CourseViewSet(viewsets.ModelViewSet):
     """
     list:
         课程列表
@@ -80,7 +86,6 @@ class CourseViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
         others_user = User.objects.all().exclude(pk=self.request.user.id)
         notification_handler(actor=self.request.user, recipient=others_user, verb='B', action_object=obj)
 
-    # @cache_response(cache='cache1', key_func=DefaultListKeyConstructor())
     def list(self, request, *args, **kwargs):
         courses = self.filter_queryset(self.get_queryset())
         serializer = self.get_custom_serializer(courses)
@@ -93,12 +98,6 @@ class CourseViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
         rel_coures = Course.objects.filter(tag=course.tag).exclude(id=course.id)
         serializer = self.get_custom_serializer(rel_coures)
         return Response({'rel_courses': serializer.data}, status=status.HTTP_200_OK)
-
-    def get_object(self):
-        obj = Course.objects.filter(id=self.kwargs.get('id')).first()
-        if obj:
-            self.check_object_permissions(self.request, obj)  # 单一资源检查删改权限
-        return obj
 
     def retrieve(self, request, *args, **kwargs):
         # 是否收藏课程
@@ -124,7 +123,7 @@ class CourseViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
         }, status=status.HTTP_200_OK)
 
 
-class CourseResourceViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
+class CourseResourceViewSet(CourseModelViewSet):
     """
     list:
         all课程资源列表
@@ -152,17 +151,28 @@ class CourseResourceViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
         return CourseResource.objects.all().select_related('course', 'user')
 
     def list(self, request, *args, **kwargs):
-        course_id = request.query_params.get('course_id', None)
+        course_id = request.query_params.get('course_id', 0)
 
-        if course_id:
+        if int(course_id) < 0:
+            return Response(code=-1, msg="course id is invalid.", status=status.HTTP_400_BAD_REQUEST)
+        elif int(course_id) > 0:
             resources = CourseResource.objects.filter(course__pk=int(course_id))
         else:
             resources = CourseResource.objects.all()
         resources_serializer = CourseResourceSerializer(resources, many=True)
         return Response(resources_serializer.data, status=status.HTTP_200_OK)
 
+    def retrieve(self, request, *args, **kwargs):
+        cr_id = self.kwargs.get('id', -1)
 
-class LessonViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
+        if int(cr_id) < 0:
+            return Response(code=-1, msg="course resource id is invalid.", status=status.HTTP_400_BAD_REQUEST)
+        cache_key = ':'.join(('course_resource', cr_id))
+        d_retrieve = self.cache_retrieve(cache_key)
+        return Response(data=d_retrieve, status=status.HTTP_200_OK)
+
+
+class LessonViewSet(CourseModelViewSet):
     """
     list:
         all课程章节列表
@@ -190,46 +200,28 @@ class LessonViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
     def get_queryset(self):
         return Lesson.objects.filter(course=self.kwargs.get('course_id')).select_related('course')
 
-    def get_object(self):
-        obj = Lesson.objects.filter(id=self.kwargs.get('id')).first()
-        if obj:
-            self.check_object_permissions(self.request, obj)
-        return obj
-
     def retrieve(self, request, *args, **kwargs):
-        lesson_id = self.kwargs.get('id')
-        if lesson_id is None:
-            return Response(code=-1, msg="lesson_id is required params.", status=status.HTTP_400_BAD_REQUEST)
-        conn = get_redis_connection('cache1')
-        cache_key = ':'.join(('lessons', lesson_id))
-        cache_obj = conn.hgetall(cache_key)
-        # 缓存存在则直接返回
-        if cache_obj:
-            return Response(cache_obj)
-        # 缓存不存在则数据库中查找，数据库中有则返回，没有则设置一个空对象并设置过期时间防止穿透
-        else:
-            instance = self.get_object()
-            if instance:
-                serializer = self.get_serializer(instance)
-                conn.hset(name=cache_key, mapping=serializer.data)
-                return Response(serializer.data)
-            else:
-                # 组装一个空对象字典返回并设置60s过期
-                cache_obj = getattr(self.serializer_class(), 'null_serializer')
-                conn.hmset(cache_key, mapping=cache_obj)
-                conn.expire(cache_key, 60)
-                return Response(cache_obj)
+        lesson_id = self.kwargs.get('id', -1)
+        course_id = self.kwargs.get('course_id', -1)
+
+        if int(lesson_id) < 0 or int(course_id) < 0:
+            return Response(code=-1, msg="course or lesson id is invalid.", status=status.HTTP_400_BAD_REQUEST)
+        cache_key = ':'.join(('courses', course_id, 'lessons', lesson_id))
+        d_retrieve = self.cache_retrieve(cache_key)
+        return Response(data=d_retrieve, status=status.HTTP_200_OK)
 
     def list(self, request, *args, **kwargs):
         # 限制只获取某一个课程的章节
-        course_id = self.kwargs.get('course_id')
+        course_id = self.kwargs.get('course_id', -1)
 
+        if int(course_id) < 0:
+            return Response(code=-1, msg="course id is invalid.", status=status.HTTP_400_BAD_REQUEST)
         lessons = Lesson.objects.filter(course=int(course_id))
         lessons_serializer = LessonSerializer(lessons, many=True)
         return Response(lessons_serializer.data, status=status.HTTP_200_OK)
 
 
-class VideoViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
+class VideoViewSet(CourseModelViewSet):
     """
     list:
         all章节视频列表
@@ -268,36 +260,35 @@ class VideoViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
         video_serializer = self.get_serializer(videos, many=True)
         return Response(video_serializer.data, status=status.HTTP_200_OK)
 
-    def get_object(self):
-        obj = Video.objects.filter(id=self.kwargs.get('id')).first()
-        if obj:
-            self.check_object_permissions(self.request, obj)
-        return obj
-
     def retrieve(self, request, *args, **kwargs):
-        video_id = self.kwargs.get('id')
+        cache_key = self.get_cache_key(**kwargs)
+        d_retrieve = self.cache_retrieve(cache_key)
+        return Response(data=d_retrieve, status=status.HTTP_200_OK)
 
-        if video_id is None:
-            return Response(code=-1, msg="video_id is required params.", status=status.HTTP_400_BAD_REQUEST)
-        conn = get_redis_connection('cache1')
-        cache_key = ':'.join(('videos', video_id))
-        cache_obj = conn.hgetall(cache_key)
-        if cache_obj:
-            return Response(cache_obj)
-        else:
-            instance = self.get_object()
-            if instance:
-                serializer = self.get_serializer(instance)
-                conn.hset(name=cache_key, mapping=serializer.data)
-                return Response(serializer.data)
-            else:
-                cache_obj = getattr(self.serializer_class(), 'null_serializer')
-                conn.hmset(cache_key, mapping=cache_obj)
-                conn.expire(cache_key, 60)
-                return Response(cache_obj)
+    def get_cache_key(self, **kwargs):
+        video_id = self.kwargs.get('id', -1)
+        course_id = self.kwargs.get('course_id', -1)
+        lesson_id = self.request.query_params.get('lesson_id', -1)
+
+        if int(video_id) < 0 or int(lesson_id) < 0 or int(course_id) < 0:
+            raise ValidationError(code=-1, detail="course or lesson or video id is invalid.")
+        return ':'.join(('courses', course_id, 'lessons', lesson_id, 'videos', video_id))
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', True)
+        cache_key = self.get_cache_key(**kwargs)
+
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        self.conn.delete(cache_key)
+        self.conn.hset(name=cache_key, mapping=serializer.data)
+        return Response(serializer.data)
 
 
-class CourseCommentViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
+class CourseCommentViewSet(CourseModelViewSet):
     """
     list:
         all评论列表
@@ -311,6 +302,7 @@ class CourseCommentViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
     """
     serializer_class = CourseCommentSerializer
     pagination_class = BasePagination
+    lookup_field = 'id'
 
     def get_permissions(self):
         if self.action not in ["update", "destroy"]:
@@ -325,11 +317,17 @@ class CourseCommentViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
         notification_handler(self.request.user, obj.user, 'C', obj)
 
     def get_queryset(self):
-        return CourseComment.objects.filter(course=self.kwargs.get('course_id')).select_related('course')
+        course_id = self.kwargs.get('course_id', -1)
+
+        if int(course_id) < 0:
+            return Response(code=-1, msg="course id is invalid.", status=status.HTTP_400_BAD_REQUEST)
+        return CourseComment.objects.filter(course=course_id).select_related('course')
 
     def list(self, request, *args, **kwargs):
-        course_id = self.kwargs.get('course_id')
+        course_id = self.kwargs.get('course_id', -1)
 
+        if int(course_id) < 0:
+            return Response(code=-1, msg="course id is invalid.", status=status.HTTP_400_BAD_REQUEST)
         course_comment = CourseComment.objects.filter(course=int(course_id)).order_by("created_time")
         course_comment_serializer = self.get_serializer(course_comment, many=True)
         return Response(course_comment_serializer.data, status=status.HTTP_200_OK)

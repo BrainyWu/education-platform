@@ -26,6 +26,7 @@ class CustomBackend(ModelBackend):
     """
     自定义用户认证方式
     """
+
     def authenticate(self, request, username=None, password=None, **kwargs):
         try:
             user = get_object(User, username=username)
@@ -193,8 +194,9 @@ def send_email_code(request, send_type, *args, **kwargs):
     email = request.data.get('email') or request.query_params.get('email')
 
     # 判断邮箱和发送类型都不为空
-    if not email or not send_type:
-        return Response(code=-1, msg="Email and send_type are required params.", status=status.HTTP_400_BAD_REQUEST)
+    if not email or not send_type or int(send_type) not in [1, 2, 3]:
+        return Response(code=-1, msg="Email and send_type are required params or invalid.",
+                        status=status.HTTP_400_BAD_REQUEST)
     # 验证邮箱有效性
     if not re.match(r"^[0-9a-zA-Z_]{0,19}@[0-9a-zA-Z]{1,13}\.(com|cn|net){1,3}$", email):
         return Response(code=-1, msg="Illegal mailbox.", status=status.HTTP_400_BAD_REQUEST)
@@ -208,7 +210,8 @@ def send_email_code(request, send_type, *args, **kwargs):
         if not username:
             return Response(code=-1, msg="username is a required params.", status=status.HTTP_400_BAD_REQUEST)
         if not User.objects.filter(username=username, email=email):
-            return Response(code=-1, msg="User is not exists, username or email error.", status=status.HTTP_401_UNAUTHORIZED)
+            return Response(code=-1, msg="User is not exists, username or email error.",
+                            status=status.HTTP_401_UNAUTHORIZED)
 
     send_email(email, send_type)
     return Response(data={'send_type': send_type, 'email': email}, status=status.HTTP_200_OK)
