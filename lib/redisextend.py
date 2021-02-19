@@ -31,7 +31,7 @@ class CustomModelViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin, mixin
     def get_object(self):
         queryset = self.filter_queryset(self.get_queryset())
         lookup_url_kwarg = self.lookup_url_kwarg or self.lookup_field
-        assert lookup_url_kwarg in self.kwargs or self.kwargs[lookup_url_kwarg] < 0, (
+        assert lookup_url_kwarg in self.kwargs, (
             'Expected view %s to be called with a URL keyword argument '
             'named "%s". Fix your URL conf, or set the `.lookup_field` '
             'attribute on the view correctly.' %

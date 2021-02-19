@@ -26,6 +26,7 @@ from lib.utils import BasePagination, get_object
 from lib.response import Response
 from notifications.views import notification_handler
 from lib.redisextend import CustomModelViewSet
+from lib.exceptions import ValidationError
 
 User = get_user_model()
 logger = logging.getLogger()
@@ -152,9 +153,9 @@ class CourseResourceViewSet(CourseModelViewSet):
     def list(self, request, *args, **kwargs):
         course_id = request.query_params.get('course_id', 0)
 
-        if course_id < 0:
+        if int(course_id) < 0:
             return Response(code=-1, msg="course id is invalid.", status=status.HTTP_400_BAD_REQUEST)
-        elif course_id > 0:
+        elif int(course_id) > 0:
             resources = CourseResource.objects.filter(course__pk=int(course_id))
         else:
             resources = CourseResource.objects.all()
@@ -164,7 +165,7 @@ class CourseResourceViewSet(CourseModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         cr_id = self.kwargs.get('id', -1)
 
-        if cr_id < 0:
+        if int(cr_id) < 0:
             return Response(code=-1, msg="course resource id is invalid.", status=status.HTTP_400_BAD_REQUEST)
         cache_key = ':'.join(('course_resource', cr_id))
         d_retrieve = self.cache_retrieve(cache_key)
@@ -203,7 +204,7 @@ class LessonViewSet(CourseModelViewSet):
         lesson_id = self.kwargs.get('id', -1)
         course_id = self.kwargs.get('course_id', -1)
 
-        if lesson_id < 0 or course_id < 0:
+        if int(lesson_id) < 0 or int(course_id) < 0:
             return Response(code=-1, msg="course or lesson id is invalid.", status=status.HTTP_400_BAD_REQUEST)
         cache_key = ':'.join(('courses', course_id, 'lessons', lesson_id))
         d_retrieve = self.cache_retrieve(cache_key)
@@ -213,7 +214,7 @@ class LessonViewSet(CourseModelViewSet):
         # 限制只获取某一个课程的章节
         course_id = self.kwargs.get('course_id', -1)
 
-        if course_id < 0:
+        if int(course_id) < 0:
             return Response(code=-1, msg="course id is invalid.", status=status.HTTP_400_BAD_REQUEST)
         lessons = Lesson.objects.filter(course=int(course_id))
         lessons_serializer = LessonSerializer(lessons, many=True)
@@ -266,11 +267,11 @@ class VideoViewSet(CourseModelViewSet):
 
     def get_cache_key(self, **kwargs):
         video_id = self.kwargs.get('id', -1)
-        lesson_id = self.kwargs.get('lesson_id', -1)
         course_id = self.kwargs.get('course_id', -1)
+        lesson_id = self.request.query_params.get('lesson_id', -1)
 
-        if video_id < 0 or lesson_id < 0 or course_id < 0:
-            return Response(code=-1, msg="course or lesson or video id is invalid.", status=status.HTTP_400_BAD_REQUEST)
+        if int(video_id) < 0 or int(lesson_id) < 0 or int(course_id) < 0:
+            raise ValidationError(code=-1, detail="course or lesson or video id is invalid.")
         return ':'.join(('courses', course_id, 'lessons', lesson_id, 'videos', video_id))
 
     def update(self, request, *args, **kwargs):
@@ -318,14 +319,14 @@ class CourseCommentViewSet(CourseModelViewSet):
     def get_queryset(self):
         course_id = self.kwargs.get('course_id', -1)
 
-        if course_id < 0:
+        if int(course_id) < 0:
             return Response(code=-1, msg="course id is invalid.", status=status.HTTP_400_BAD_REQUEST)
         return CourseComment.objects.filter(course=course_id).select_related('course')
 
     def list(self, request, *args, **kwargs):
         course_id = self.kwargs.get('course_id', -1)
 
-        if course_id < 0:
+        if int(course_id) < 0:
             return Response(code=-1, msg="course id is invalid.", status=status.HTTP_400_BAD_REQUEST)
         course_comment = CourseComment.objects.filter(course=int(course_id)).order_by("created_time")
         course_comment_serializer = self.get_serializer(course_comment, many=True)
