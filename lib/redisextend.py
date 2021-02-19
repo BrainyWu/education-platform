@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 __author__ = 'wuhai'
 from django_redis import get_redis_connection
-from rest_framework import mixins, viewsets
+from rest_framework import mixins, viewsets, serializers
 
 
 class CustomRedisClient:
@@ -16,6 +16,16 @@ class CustomRedisClient:
         pieces = [cursor]
         pieces.extend([b'MATCH', match])
         return self.conn.execute_command("SCAN", *pieces)[1]
+
+
+# 自定义ModelSerializer，便于拓展
+class CustomModelSerializer(serializers.ModelSerializer):
+
+    @property
+    def null_serializer(self):
+        # 构建缓存空序列化对象，不返回write_only=True的字段
+        fields = self.get_fields()
+        return {field: 'null' for field, f_type in fields.items() if not f_type.write_only}
 
 
 class CustomModelViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin, mixins.DestroyModelMixin,
