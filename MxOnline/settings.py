@@ -133,8 +133,8 @@ CACHES = {
             "CLIENT_CLASS": "django_redis.client.DefaultClient",
             "CONNECTION_POOL_KWARGS": {
                 "max_connections": env('DEFAULT_CACHE_MAX_CONNECTIONS', default=100),
-            }
-            # "PASSWORD":"xxxxxx" # 可能需要密码
+            },
+            "PASSWORD": env('REDIS_PASSWORD', default='')
         }
     },
     "cache1": {
@@ -147,6 +147,7 @@ CACHES = {
                 "max_connections": env('CACHEONE_MAX_CONNECTIONS', default=100),
                 # 避免转码，直接对原数据进行操作, 默认False
                 "decode_responses": True,
+                "PASSWORD": env('REDIS_PASSWORD', default='')
             }
         }
     },
@@ -198,7 +199,7 @@ SESSION_REDIS = {
     'host': env('SESSION_HOST'),
     'port': env('SESSION_PORT', default=6379),
     'db': env('SESSION_DB', default=1),
-    'password': env('SESSION_PASSWORD'),
+    'password': env('REDIS_PASSWORD', default=''),
     'prefix': env('SESSION_PREFIX', default='session'),
     'socket_timeout': env('SESSION_SOCKET_TIMEOUT', default=1),
     # 修改redis-seesion源码添加自定义过期时间
