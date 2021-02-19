@@ -76,9 +76,9 @@ class TeacherViewSet(viewsets.ModelViewSet, viewsets.GenericViewSet):
         return Teacher.objects.all().select_related('org')
 
     def list(self, request, *args, **kwargs):
-        org_id = request.query_params.get('org_id', None)
+        org_id = request.query_params.get('org_id', -1)
 
-        if org_id:
+        if org_id > 0:
             course_org = get_object(CourseOrg, org_id)
             has_fav = False
             if request.user.is_authenticated:

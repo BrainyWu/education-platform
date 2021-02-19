@@ -9,7 +9,7 @@ from . import views
 
 router = DefaultRouter()
 
-router.register(r'org', views.OrgViewSet, basename="org")
+router.register(r'o', views.OrgViewSet, basename="org")
 router.register(r'city', views.CityViewSet, basename="city")
 router.register(r'teacher', views.TeacherViewSet, basename="teacher")
 

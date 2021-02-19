@@ -80,10 +80,11 @@ class AddFavViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets.
         return obj, serializer
 
     def create(self, request, *args, **kwargs):
-        fav_id = request.data.get('fav_id', None)
-        fav_type = request.data.get('fav_type', None)
-        if fav_id is None or fav_type is None:
-            return Response(code=-1, msg='Fav_id and Fav type are required.', status=status.HTTP_400_BAD_REQUEST)
+        fav_id = request.data.get('fav_id', -1)
+        fav_type = request.data.get('fav_type', -1)
+
+        if fav_id < 0 or fav_type < 0:
+            return Response(code=-1, msg='Fav id or Fav type is invalid.', status=status.HTTP_400_BAD_REQUEST)
 
         obj, serializer = self.obj_map(fav_type, fav_id)
         exist_records = UserFavorite.objects.filter(user=request.user, fav_id=int(fav_id), fav_type=int(fav_type))
