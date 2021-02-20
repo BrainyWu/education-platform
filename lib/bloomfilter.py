@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
-import mmh3
 import math
 import time
+
+import mmh3
+import BitVector
 
 
 class PyBloomFilter:
@@ -25,6 +27,9 @@ class PyBloomFilter:
         self.key = key
         self.N = 2 ** 31 - 1
         self.redis = conn
+        if not self.redis:
+            # 默认如果没有redis连接，在内存中使用512M的内存块去重
+            self.bitset = BitVector.BitVector(size=1 << 32)
         # print(self.mem)
         # print(self.k)
 
