@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
-import mmh3
-import BitVector
 import math
 import time
+
+import mmh3
+import BitVector
 
 
 class PyBloomFilter:
