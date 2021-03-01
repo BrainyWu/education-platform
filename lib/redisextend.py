@@ -54,7 +54,7 @@ class CustomModelViewSet(mixins.CreateModelMixin, mixins.UpdateModelMixin, mixin
             self.check_object_permissions(self.request, obj)
         return obj
 
-    def cache_retrieve(self, cache_key=None, exist_expire=4320, null_expire=60):
+    def cache_retrieve(self, cache_key=None, exist_expire=43200, null_expire=60):
         """
         单一资源缓存读取
         :param cache_key: cache name
