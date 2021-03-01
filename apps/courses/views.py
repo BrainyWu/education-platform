@@ -225,6 +225,7 @@ class VideoViewSet(CourseModelViewSet):
     """
     list:
         all章节视频列表
+        course_id: 某个课程列表
         lesson_id: 某个章节的视频列表
     retrieve:
         视频详情
@@ -283,8 +284,7 @@ class VideoViewSet(CourseModelViewSet):
         serializer.is_valid(raise_exception=True)
         self.perform_update(serializer)
 
-        self.conn.delete(cache_key)
-        self.conn.hset(name=cache_key, mapping=serializer.data)
+        self.cache_update(cache_key, serializer.data)
         return Response(serializer.data)
 
 
