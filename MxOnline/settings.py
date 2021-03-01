@@ -147,8 +147,8 @@ CACHES = {
                 "max_connections": env('CACHEONE_MAX_CONNECTIONS', default=100),
                 # 避免转码，直接对原数据进行操作, 默认False
                 "decode_responses": True,
-                "PASSWORD": env('REDIS_PASSWORD', default='')
-            }
+            },
+            "PASSWORD": env('REDIS_PASSWORD', default='')
         }
     },
 }
