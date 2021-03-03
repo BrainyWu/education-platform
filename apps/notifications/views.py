@@ -38,7 +38,7 @@ def mark_all_as_read(request, *args, **kwargs):
     messages.add_message(request, messages.SUCCESS, f'用户{request.user.username}的所有通知标为已读')
     if redirect_url:
         return redirect(redirect_url)
-    return redirect('notification:unread')
+    return redirect('notifications:unread')
 
 
 @api_view(["GET", "POST"])
@@ -66,6 +66,7 @@ def notification_handler(actor=None, recipient=None, verb=None, action_object=No
     :param kwargs:          key, id_value等
     :return:                None
     """
+    msg = None
     key = kwargs.pop('key', 'notification')
     id_value = kwargs.pop('id_value', None)
     slug = kwargs.pop('slug', None)
@@ -80,6 +81,7 @@ def notification_handler(actor=None, recipient=None, verb=None, action_object=No
     else:
         recipients = [recipient]
 
+    channel_layer = get_channel_layer()
     for recipient in recipients:
         newnotify = Notification.objects.create(
             actor=actor,
@@ -88,15 +90,16 @@ def notification_handler(actor=None, recipient=None, verb=None, action_object=No
             verb=verb,
             action_object=action_object
         )
+        if msg is None:
+            msg = newnotify.__str__()
         newnotify.save()
 
-    channel_layer = get_channel_layer()
     payload = {
         'type': 'receive',
         'key': key,
         'actor_name': actor.username,
         'id_value': id_value,
-        'msg': newnotify.__str__(),
+        'msg': msg,
     }
     async_to_sync(channel_layer.group_send)("notifications", payload)
 
