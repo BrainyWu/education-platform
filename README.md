@@ -13,4 +13,5 @@ Done:
 （5）添加jwt模式认证，自定义jwt登陆返回格式，apps/users/utils.py。
 （6）添加自定义消息通知模块notifications，app原型：django-notifications，实现基本消息通知。
 （7）redis实现实例缓存，添加bloomfilter缓存校验方式。
+ (8) 第三方登陆认证实现，git依赖：social-app-django。
 

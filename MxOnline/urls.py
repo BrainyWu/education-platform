@@ -35,6 +35,8 @@ urlpatterns = [
     url(r'^api-token-auth/', utils.obtain_jwt_token),
     url(r'api-token-refresh/', utils.refresh_jwt_token),
     url(r'api-token-verify/', utils.verify_jwt_token),
+    # 第三方登陆
+    url('', include('social_django.urls', namespace='social')),
     # drf api接口文档
     url(r'docs/', include_docs_urls(title='API文档')),  # 线上环境，干掉
 

@@ -65,6 +65,7 @@ THIRD_PARTY_APPS = [
     'pure_pagination',
     'DjangoUeditor',
     'django_filters',
+    'social_django',
     'rest_framework',
     'rest_framework.authtoken',
 ]
@@ -101,7 +102,9 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 # 'django.core.context_processors.media',
-                'django.template.context_processors.media'
+                'django.template.context_processors.media',
+                'social_django.context_processors.backends',
+                'social_django.context_processors.login_redirect',
             ],
         },
     },
@@ -120,6 +123,9 @@ DATABASES = {
         'PASSWORD': env('MYSQL_DB_PASSWORD'),
         'HOST': env('MYSQL_DB_HOST'),
         'CONN_MAX_AGE': env('MYSQL_DB_CONN_MAX_AGE', default=100),
+        'OPTIONS': {
+            'init_command': 'SET storage_engine=INNODB;'  # 预防mysql版本问题，默认一致innodb
+        }
     }
 }
 
@@ -190,6 +196,10 @@ AUTH_PASSWORD_VALIDATORS = [
 # custom auth
 AUTHENTICATION_BACKENDS = (
     'users.views.CustomBackend',
+    'social_core.backends.qq.QQOAuth2',
+    'social_core.backends.weibo.WeiboOAuth2',
+    'social_core.backends.weixin.WeixinOAuth2',
+    'django.contrib.auth.backends.ModelBackend',
 )
 
 # 配置session存储
@@ -239,9 +249,20 @@ JWT_AUTH = {
     'JWT_AUTH_HEADER_PREFIX': 'JWT',
 }
 
+# social django settings
+SOCIAL_AUTH_LOGIN_REDIRECT_URL = '/learn/course/'  # 第三方登陆跳转页
+SOCIAL_AUTH_WEIBO_KEY = ''
+SOCIAL_AUTH_WEIBO_SECRET = ''
+
+SOCIAL_AUTH_QQ_KEY = ''
+SOCIAL_AUTH_QQ_SECRET = ''
+
+SOCIAL_AUTH_WEIXIN_KEY = ''
+SOCIAL_AUTH_WEIXIN_SECRET = ''
+
+
 # Internationalization
 # https://docs.djangoproject.com/en/1.9/topics/i18n/
-
 LANGUAGE_CODE = 'zh-hans'
 TIME_ZONE = 'Asia/Shanghai'
 USE_I18N = True
