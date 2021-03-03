@@ -100,6 +100,6 @@ class AddFavViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets.
             user_fav.create(user=request.user, fav_id=int(fav_id), fav_type=int(fav_type))
             # 收藏课程才通知
             if int(fav_type) == 1:
-                notification_handler(self.request.user, obj.user, 'L', obj)
+                notification_handler(self.request.user, obj.user, 'L', obj, id_value=str(obj.id))
             obj.modify_fav_nums(incr=True)
             return Response({'result': serializer.data}, status=status.HTTP_201_CREATED)
