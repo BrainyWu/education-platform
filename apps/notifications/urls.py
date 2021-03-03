@@ -6,8 +6,6 @@ from django.conf.urls import url, include
 
 from .views import *
 
-app_name = 'notifications'
-
 urlpatterns = [
     url('unread/', NotificationUnreadView.as_view({'get': 'list'}), name='unread'),
     url('mark-all-read/', mark_all_as_read, name='mark_all_read'),

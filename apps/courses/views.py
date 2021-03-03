@@ -6,9 +6,6 @@ from collections import OrderedDict
 from django_filters.rest_framework import DjangoFilterBackend
 from django.contrib.auth import get_user_model
 from django_redis import get_redis_connection
-from rest_framework_extensions.cache.mixins import CacheResponseMixin
-from rest_framework_extensions.key_constructor.constructors import DefaultListKeyConstructor, \
-    DefaultObjectKeyConstructor
 from rest_framework_extensions.cache.decorators import cache_response
 from rest_framework.authentication import SessionAuthentication, BasicAuthentication
 from rest_framework.permissions import IsAuthenticatedOrReadOnly
@@ -18,22 +15,22 @@ from rest_framework.decorators import action
 
 from .models import Course, CourseResource, Lesson, Video
 from .serializers import CourseSerializer, LessonSerializer, CourseResourceSerializer, VideoSerializer
-from notifications.views import notification_handler
-from operation.models import UserFavorite, CourseComment
-from operation.serializers import CourseCommentSerializer
+from lib.exceptions import ValidationError
+from lib.keyconstructors import ListKeyConstructor, ObjectKeyConstructor
 from lib.permissions import IsOwnerOrReadOnly, IsOwnerOrReadOnlyForCourse
 from lib.utils import BasePagination, get_object
 from lib.response import Response
-from notifications.views import notification_handler
 from lib.redisextend import CustomModelViewSet
-from lib.exceptions import ValidationError
+from notifications.views import notification_handler
+from operation.models import UserFavorite, CourseComment
+from operation.serializers import CourseCommentSerializer
 
 User = get_user_model()
 logger = logging.getLogger()
 
 
 class CourseModelViewSet(CustomModelViewSet):
-    conn = get_redis_connection('cache1')
+    conn = get_redis_connection('learn')
 
 
 class CourseViewSet(viewsets.ModelViewSet):
@@ -86,6 +83,7 @@ class CourseViewSet(viewsets.ModelViewSet):
         others_user = User.objects.all().exclude(pk=self.request.user.id)
         notification_handler(actor=self.request.user, recipient=others_user, verb='B', action_object=obj)
 
+    # @cache_response(timeout=60 * 60 * 24, key_func=ListKeyConstructor())
     def list(self, request, *args, **kwargs):
         courses = self.filter_queryset(self.get_queryset())
         serializer = self.get_custom_serializer(courses)
@@ -314,7 +312,7 @@ class CourseCommentViewSet(CourseModelViewSet):
         serializer.save()
         # 有课程评论则推送消息通知课程作者
         obj = get_object(Course, int(serializer.data['course']))
-        notification_handler(self.request.user, obj.user, 'C', obj)
+        notification_handler(self.request.user, obj.user, 'C', obj, id_value=str(obj.id))
 
     def get_queryset(self):
         course_id = self.kwargs.get('course_id', -1)

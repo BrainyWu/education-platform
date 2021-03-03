@@ -137,7 +137,7 @@ CACHES = {
             "PASSWORD": env('REDIS_PASSWORD', default='')
         }
     },
-    "cache1": {
+    "learn": {
         "BACKEND": env.CACHE_SCHEMES.get('rediscache'),
         "LOCATION": env('CACHEONE_LOCATION'),
         "TIMEOUT": env('CACHEONE_TIMEOUT', default=1800),
@@ -165,9 +165,9 @@ CHANNEL_LAYERS = {
     },
 }
 
-# REST_FRAMEWORK_EXTENSIONS = {
-#
-# }
+REST_FRAMEWORK_EXTENSIONS = {
+    'DEFAULT_CACHE_RESPONSE_TIMEOUT': 5
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/1.9/ref/settings/#auth-password-validators
