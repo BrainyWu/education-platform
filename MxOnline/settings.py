@@ -124,7 +124,7 @@ DATABASES = {
         'HOST': env('MYSQL_DB_HOST'),
         'CONN_MAX_AGE': env('MYSQL_DB_CONN_MAX_AGE', default=100),
         'OPTIONS': {
-            'init_command': 'SET storage_engine=INNODB;'  # 预防mysql版本问题，默认一致innodb
+            'init_command': 'SET default_storage_engine=INNODB;'  # 预防mysql版本问题，默认一致innodb
         }
     }
 }
