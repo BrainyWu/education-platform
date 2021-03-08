@@ -65,6 +65,11 @@ class Course(models.Model):
         return [{'id': obj.id, 'name': obj.name, 'videos': obj.get_videos()}
                 for obj in self.lesson_set.all()]
 
+    def add_click_nums(self):
+        self.click_nums += 1
+        self.save()
+        return self.click_nums
+
     def modify_fav_nums(self, incr=True):
         if incr:
             self.fav_nums += 1
