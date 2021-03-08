@@ -70,11 +70,6 @@ class CourseViewSet(viewsets.ModelViewSet):
             return self.get_serializer(queryset, many=many)
 
     def get_queryset(self):
-        # return Course.objects.raw("SELECT d.*, GROUP_CONCAT((SELECT u.username FROM user_info u "
-        #                           "WHERE u.id=uc.user_id LIMIT 10)) learn_users FROM ("
-        #                           "SELECT c.*, GROUP_CONCAT(cl.`name`) lessons FROM course c "
-        #                           "LEFT JOIN course_lesson cl ON c.id=cl.course_id GROUP BY cl.course_id) d "
-        #                           "LEFT JOIN user_course uc ON d.id=uc.course_id GROUP BY uc.course_id")
         return Course.objects.all().select_related('org', 'user', 'teacher')
 
     def perform_create(self, serializer):
@@ -111,8 +106,7 @@ class CourseViewSet(viewsets.ModelViewSet):
             if course.org and UserFavorite.objects.filter(user=request.user, fav_id=course.org.id, fav_type=2):
                 has_fav_org = True
 
-        course.click_nums += 1
-        course.save()
+        course.add_click_nums()
         course_serializer = self.get_serializer(course)
         return Response({
             'course': course_serializer.data,

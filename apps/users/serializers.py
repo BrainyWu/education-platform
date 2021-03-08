@@ -132,9 +132,9 @@ class ModifyPwdSerializer(serializers.Serializer):
 
     def validate(self, attrs):
         if attrs['user'].check_password(attrs['password1']):
-            raise serializers.ValidationError("不能与密码一致.")
+            raise serializers.ValidationError("不能与原密码一致.")
         if attrs['password1'] != attrs['password2']:
-            raise serializers.ValidationError("密码不一致.")
+            raise serializers.ValidationError("新密码前后不一致.")
         return attrs
 
     def update(self, instance, validated_data):
